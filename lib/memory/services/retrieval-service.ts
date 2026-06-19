@@ -49,23 +49,19 @@ function matchesQuery(row: MemoryItemRow, queryText: string): boolean {
 }
 
 function matchesFilters(row: MemoryItemRow, filters: MemoryRetrievalFilters | undefined): boolean {
-  if (!filters) {
-    return true;
-  }
-
-  if (filters.memoryType && row.memory_type !== filters.memoryType) {
+  if (filters?.memoryType && row.memory_type !== filters.memoryType) {
     return false;
   }
 
-  if (filters.strength && row.strength !== filters.strength) {
+  if (filters?.strength && row.strength !== filters.strength) {
     return false;
   }
 
-  if (filters.canonStatus && row.canon_status !== filters.canonStatus) {
+  if (filters?.canonStatus && row.canon_status !== filters.canonStatus) {
     return false;
   }
 
-  if (filters.activeOnly !== false && !row.is_active) {
+  if (filters?.activeOnly !== false && !row.is_active) {
     return false;
   }
 
