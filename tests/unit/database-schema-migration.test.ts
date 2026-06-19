@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 
 const migrationPath = path.resolve(process.cwd(), "supabase/migrations/20260620000100_core_database_schema.sql");
 const migrationSql = readFileSync(migrationPath, "utf8").toLowerCase();
+const executableSql = migrationSql
+  .split("\n")
+  .filter((line) => !line.trimStart().startsWith("--"))
+  .join("\n");
 
 const requiredTables = [
   "memory_items",
@@ -64,11 +68,11 @@ describe("core database schema migration", () => {
       expect(migrationSql).toContain(`alter table public.${tableName} enable row level security`);
     }
 
-    expect(migrationSql).not.toContain("create policy");
+    expect(executableSql).not.toContain("create policy");
   });
 
   it("does not enable pgvector or create fake seed data", () => {
-    expect(migrationSql).not.toContain("create extension if not exists vector");
-    expect(migrationSql).not.toContain("insert into");
+    expect(executableSql).not.toContain("create extension if not exists vector");
+    expect(executableSql).not.toContain("insert into");
   });
 });
