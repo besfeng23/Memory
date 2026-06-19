@@ -9,7 +9,13 @@ import {
   isRealLifeTableName,
 } from "@/lib/db/table-names";
 import { expectedNamespaceForTable, tableAllowsNamespace } from "@/lib/db/namespaces";
-import type { PublicTableName, PublicTableRow } from "@/lib/supabase/database.types";
+import type {
+  ClaimIdempotencyRecordArgs,
+  FinishIdempotencyRecordArgs,
+  PublicFunctionName,
+  PublicTableName,
+  PublicTableRow,
+} from "@/lib/supabase/database.types";
 
 const requiredTables = [
   "memory_items",
@@ -41,10 +47,16 @@ const requiredTables = [
   "au_quality_reviews",
 ] as const satisfies readonly PublicTableName[];
 
+const requiredFunctions = ["claim_idempotency_record", "finish_idempotency_record"] as const satisfies readonly PublicFunctionName[];
+
 describe("database type foundation", () => {
   it("tracks all Pandora table names", () => {
     expect(ALL_PANDORA_TABLE_NAMES).toEqual(requiredTables);
     expect(new Set(ALL_PANDORA_TABLE_NAMES).size).toBe(ALL_PANDORA_TABLE_NAMES.length);
+  });
+
+  it("tracks public database functions", () => {
+    expect(requiredFunctions).toEqual(["claim_idempotency_record", "finish_idempotency_record"]);
   });
 
   it("groups core, real-life, and AU tables", () => {
@@ -132,5 +144,31 @@ describe("database type foundation", () => {
     expect(memoryItem.namespace).toBe("real_life");
     expect(idempotencyRecord.status).toBe("started");
     expect(auWorld.namespace).toBe("au");
+  });
+
+  it("exposes idempotency RPC argument types", () => {
+    const claimArgs = {
+      p_namespace: "real_life",
+      p_scope: "memory_patch",
+      p_operation: "saveMemoryPatch",
+      p_idempotency_key: "client-key",
+      p_key_source: "client",
+      p_fingerprint: "fingerprint",
+      p_request_hash: null,
+      p_expires_at: null,
+      p_metadata: {},
+    } satisfies ClaimIdempotencyRecordArgs;
+
+    const finishArgs = {
+      p_record_id: "record_id",
+      p_namespace: "real_life",
+      p_fingerprint: "fingerprint",
+      p_status: "completed",
+      p_response_hash: null,
+      p_metadata: {},
+    } satisfies FinishIdempotencyRecordArgs;
+
+    expect(claimArgs.p_key_source).toBe("client");
+    expect(finishArgs.p_status).toBe("completed");
   });
 });
