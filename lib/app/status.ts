@@ -76,13 +76,18 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Internal service validates memory patch candidates, writes append-only patch rows, and records audit logs.",
   },
+  {
+    title: "Retrieval service scaffold",
+    status: "implemented",
+    description: "Internal owner and namespace filtered memory item retrieval is present without pgvector or public routes.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
   {
     title: "Memory engine",
     status: "planned",
-    description: "No public ingest route, extraction runtime, retrieval, or memory timeline behavior is implemented yet.",
+    description: "No public ingest route, extraction runtime, semantic retrieval, or memory timeline behavior is implemented yet.",
   },
   {
     title: "pgvector retrieval",
@@ -172,6 +177,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Patch services validate patch candidates and write audit rows without exposing mutation routes.",
   },
+  {
+    title: "Internal retrieval boundary",
+    status: "foundation",
+    description: "Retrieval services use owner and namespace repository filters and do not expose public search routes.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -179,6 +189,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
+  { title: "Retrieval service", status: "implemented", description: "Internal owner and namespace filtered retrieval service scaffolding.", href: `${githubDocsBase}/retrieval-service.md` },
   { title: "Patch service", status: "implemented", description: "Internal append-only memory patch service functions.", href: `${githubDocsBase}/patch-service.md` },
   { title: "Logging services", status: "implemented", description: "Internal retrieval, prompt, and audit logging service functions.", href: `${githubDocsBase}/logging-services.md` },
   { title: "Memory candidate services", status: "implemented", description: "Internal service functions for validated memory candidate preparation and saving.", href: `${githubDocsBase}/memory-candidate-services.md` },
