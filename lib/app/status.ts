@@ -46,6 +46,11 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Schema-aligned TypeScript database types, typed Supabase clients, and table namespace helpers are present.",
   },
+  {
+    title: "Repository/service foundation",
+    status: "implemented",
+    description: "Repository contracts, context helpers, namespace guards, and owned insert preparation are present without public APIs.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
@@ -112,6 +117,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Table names and namespace expectations are now represented in reusable TypeScript helpers.",
   },
+  {
+    title: "Repository service boundary",
+    status: "foundation",
+    description: "Service helpers prepare owner-bound records from authenticated context before future database operations.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -123,6 +133,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
   { title: "Database schema", status: "implemented", description: "Core schema tables, namespace columns, and RLS-enabled locked-down tables.", href: `${githubDocsBase}/database-schema.md` },
   { title: "Database types", status: "implemented", description: "Schema-aligned TypeScript database types and table helpers.", href: `${githubDocsBase}/database-types.md` },
+  { title: "Repository foundation", status: "implemented", description: "Repository contracts, context helpers, and service boundary rules.", href: `${githubDocsBase}/repository-service-foundation.md` },
   { title: "RLS policies", status: "implemented", description: "Owner-scoped row-level security policy foundation.", href: `${githubDocsBase}/rls-policies.md` },
   { title: "UI foundation", status: "implemented", description: "UI shell, status honesty, and no-fake-data rules.", href: `${githubDocsBase}/ui-foundation.md` },
 ];
