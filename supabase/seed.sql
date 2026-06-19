@@ -1,0 +1,6 @@
+-- Pandora Memory Engine local seed file.
+--
+-- This task intentionally does not insert production memory data, fake users,
+-- fake people, AU worlds, memory rows, or schema objects. Real development seed
+-- data will be introduced in a later database task after the schema, RLS, and
+-- namespace isolation rules are implemented through migrations.

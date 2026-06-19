@@ -8,7 +8,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:lint": "supabase db lint",
+    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
+    "db:push": "supabase db push --dry-run",
+    "db:pull": "supabase db pull --schema public"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

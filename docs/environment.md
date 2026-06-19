@@ -6,7 +6,7 @@ Pandora Memory Engine uses local `.env.local` files for development and Vercel e
 
 Create `.env.local` from `.env.example` and fill in development credentials only. Do not commit `.env.local`.
 
-Recommended local setup:
+Recommended local app setup:
 
 ```bash
 npm install
@@ -15,6 +15,30 @@ npm run dev
 ```
 
 Use local or development Supabase credentials for local development. Do not use production service role keys on a shared machine.
+
+## Supabase CLI and Local Database
+
+Pandora uses the Supabase CLI for local database development and SQL migrations. Install the Supabase CLI before running the `db:*` npm scripts documented in [Database migrations](database-migrations.md).
+
+Local database work should use the disposable Supabase CLI stack:
+
+```bash
+npm run db:start
+npm run db:reset
+npm run db:stop
+```
+
+The local database is for migration development and can be reset. Do not point local scripts at production credentials unless a reviewed production migration task explicitly requires it.
+
+## Database Environments
+
+Pandora database environments must stay separated:
+
+- **Local:** Supabase CLI database on the developer machine. Safe to reset and reseed.
+- **Preview/Staging:** non-production hosted Supabase project for deployment previews and integration checks.
+- **Production:** real user data. Production migrations require review, backups, and deliberate execution.
+
+Production database changes must not happen casually because memory data is sensitive, append-only history must remain auditable, and future RLS/namespace isolation rules must protect real-life and AU/story data from cross-contamination.
 
 ## Vercel Environment Variables
 

@@ -1,0 +1,44 @@
+# Local Supabase CLI configuration for Pandora Memory Engine.
+#
+# This file is intentionally generic and safe to commit. Do not add hosted
+# project IDs, access tokens, production database credentials, or passwords.
+# Link hosted projects only in local developer state created by the Supabase CLI.
+
+project_id = "pandora-memory-engine-local"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
