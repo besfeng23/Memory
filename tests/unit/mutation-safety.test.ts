@@ -356,7 +356,7 @@ describe("mutation safety orchestration", () => {
           memory_item_id: "memory_item_id",
           patch_type: "correction",
           reason: "Correcting an existing memory item.",
-          before_snapshot: null,
+          before_snapshot: { body: "Original" },
           after_snapshot: { body: "Updated" },
           metadata: {},
         },
