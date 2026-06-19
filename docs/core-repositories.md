@@ -1,6 +1,6 @@
 # Safe Core Repositories
 
-Pandora Memory Engine now includes concrete server-side repositories for selected safe core tables.
+Pandora Memory Engine includes concrete server-side repositories for selected safe core tables.
 
 ## File
 
@@ -14,11 +14,12 @@ The repository foundation currently covers:
 
 - `memory_items`
 - `memory_sources`
+- `memory_patches`
 - `retrieval_logs`
 - `prompt_logs`
 - `audit_logs`
 
-`memory_patches` is intentionally excluded from this first repository set. Patch behavior needs stricter validation and append-only rules before it should receive a concrete repository.
+`memory_patches` was added only after memory patch validation and an internal append-only patch service existed.
 
 ## What the Repositories Do
 
@@ -54,10 +55,6 @@ This step does not add:
 - public memory API routes
 - memory ingest behavior
 - memory extraction
-- memory validation
-- append-only patch behavior
-- retrieval logging behavior
-- audit logging behavior
 - pgvector
 - OpenAI calls
 - GPT Actions
@@ -76,6 +73,6 @@ Future repositories must keep the same guardrails:
 6. Avoid public API exposure until service behavior is validated.
 7. Add tests before merge.
 
-## Next Step
+## Current Limit
 
-Prompt 12 should add memory validation contracts and service-layer validators before any public memory ingest or patch route is exposed.
+Repository calls are still not wrapped in a transaction layer. Public mutation routes should not be exposed until transaction and idempotency strategy are added.
