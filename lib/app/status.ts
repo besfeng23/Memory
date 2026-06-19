@@ -41,6 +41,11 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Owner-scoped row-level security rules exist for user-owned core, real-life, and AU/story tables.",
   },
+  {
+    title: "Typed database foundation",
+    status: "implemented",
+    description: "Schema-aligned TypeScript database types, typed Supabase clients, and table namespace helpers are present.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
@@ -102,6 +107,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "The database policy layer now has an owner boundary; service-layer validation remains planned.",
   },
+  {
+    title: "Typed table boundaries",
+    status: "foundation",
+    description: "Table names and namespace expectations are now represented in reusable TypeScript helpers.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -112,6 +122,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
   { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
   { title: "Database schema", status: "implemented", description: "Core schema tables, namespace columns, and RLS-enabled locked-down tables.", href: `${githubDocsBase}/database-schema.md` },
+  { title: "Database types", status: "implemented", description: "Schema-aligned TypeScript database types and table helpers.", href: `${githubDocsBase}/database-types.md` },
   { title: "RLS policies", status: "implemented", description: "Owner-scoped row-level security policy foundation.", href: `${githubDocsBase}/rls-policies.md` },
   { title: "UI foundation", status: "implemented", description: "UI shell, status honesty, and no-fake-data rules.", href: `${githubDocsBase}/ui-foundation.md` },
 ];
