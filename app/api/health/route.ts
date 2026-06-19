@@ -22,6 +22,7 @@ export function GET() {
     persistentIdempotencyStorageImplemented: true,
     mutationSafetyOrchestrationImplemented: true,
     idempotencyRpcStrategyImplemented: true,
+    mutationSafetyRpcIntegrationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
