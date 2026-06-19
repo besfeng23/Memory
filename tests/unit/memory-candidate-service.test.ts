@@ -81,9 +81,9 @@ describe("memory candidate services", () => {
         namespace: "real_life",
         memory_type: "business_fact",
         title: "Contract status",
-        user_id: undefined,
         updated_at: "2026-01-01T00:00:00.000Z",
       });
+      expect(result.data.memoryItem).not.toHaveProperty("user_id");
       expect(result.data.sources).toHaveLength(1);
       expect(result.data.sources[0]).toMatchObject({
         source_type: "document",
