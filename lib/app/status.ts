@@ -61,13 +61,18 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Service-layer validators for memory candidates and patch candidates are present without public routes.",
   },
+  {
+    title: "Memory candidate services",
+    status: "implemented",
+    description: "Service functions combine validation with safe repositories for memory candidate preparation and internal saving.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
   {
     title: "Memory engine",
     status: "planned",
-    description: "No ingest, extraction, retrieval, patch persistence, or memory timeline behavior is implemented yet.",
+    description: "No ingest route, extraction runtime, retrieval, patch persistence, or memory timeline behavior is implemented yet.",
   },
   {
     title: "pgvector retrieval",
@@ -115,7 +120,7 @@ export const safetyRules: StatusItem[] = [
   {
     title: "Append-only memory changes",
     status: "foundation",
-    description: "Schema includes append-only memory patch and audit log tables; persistence behavior is still planned.",
+    description: "Schema includes append-only memory patch and audit log tables; patch behavior is still planned.",
   },
   {
     title: "User-owned RLS boundary",
@@ -142,6 +147,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Memory candidates are checked for namespace, type, source, and patch safety before any future persistence path.",
   },
+  {
+    title: "Internal candidate service boundary",
+    status: "foundation",
+    description: "Candidate services are internal-only and do not expose public ingest or patch routes.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -149,6 +159,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
+  { title: "Memory candidate services", status: "implemented", description: "Internal service functions for validated memory candidate preparation and saving.", href: `${githubDocsBase}/memory-candidate-services.md` },
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
   { title: "Memory validation", status: "implemented", description: "Service-layer memory candidate and patch candidate validation rules.", href: `${githubDocsBase}/memory-validation.md` },
   { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
