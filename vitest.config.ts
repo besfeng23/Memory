@@ -1,4 +1,7 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   esbuild: {
@@ -7,7 +10,7 @@ export default {
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "."),
+      "@": path.resolve(configDir, "."),
     },
   },
   test: {
