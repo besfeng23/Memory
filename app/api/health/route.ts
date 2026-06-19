@@ -14,6 +14,7 @@ export function GET() {
     repositoryServiceFoundationImplemented: true,
     safeCoreRepositoriesImplemented: true,
     memoryValidationFoundationImplemented: true,
+    memoryCandidateServiceFoundationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
