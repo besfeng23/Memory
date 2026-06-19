@@ -9,9 +9,9 @@ export function GET() {
     status: "foundation-ready",
     authSessionStructureImplemented: true,
     databaseSchemaMigrationImplemented: true,
+    securityPolicyFoundationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
-    rlsPoliciesImplemented: false,
     openAiIntegrationImplemented: false,
   });
 }
