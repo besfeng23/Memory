@@ -19,6 +19,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("Logging services");
     expect(titles).toContain("Patch service");
     expect(titles).toContain("Retrieval service scaffold");
+    expect(titles).toContain("Transaction and idempotency scaffold");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 
