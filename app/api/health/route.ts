@@ -12,6 +12,7 @@ export function GET() {
     securityPolicyFoundationImplemented: true,
     typedDatabaseFoundationImplemented: true,
     repositoryServiceFoundationImplemented: true,
+    safeCoreRepositoriesImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
