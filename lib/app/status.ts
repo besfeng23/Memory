@@ -34,7 +34,12 @@ export const completedPrompts: StatusItem[] = [
   {
     title: "Core database schema migration",
     status: "implemented",
-    description: "Initial Supabase migration defines core, real-life, and AU/story tables with RLS enabled and policies deferred.",
+    description: "Initial Supabase migration defines core, real-life, and AU/story tables with row-level protection enabled.",
+  },
+  {
+    title: "RLS policy foundation",
+    status: "implemented",
+    description: "Owner-scoped row-level security rules exist for user-owned core, real-life, and AU/story tables.",
   },
 ];
 
@@ -43,11 +48,6 @@ export const coreImplementationStatus: StatusItem[] = [
     title: "Memory engine",
     status: "planned",
     description: "No ingest, extraction, retrieval, validation, patching, or memory timeline behavior is implemented yet.",
-  },
-  {
-    title: "RLS policies",
-    status: "planned",
-    description: "Row-level security is enabled on user-owned tables, but explicit policies are not implemented yet.",
   },
   {
     title: "pgvector retrieval",
@@ -97,6 +97,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Schema includes append-only memory patch and audit log tables; service behavior is still planned.",
   },
+  {
+    title: "User-owned RLS boundary",
+    status: "foundation",
+    description: "The database policy layer now has an owner boundary; service-layer validation remains planned.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -107,5 +112,6 @@ export const documentationLinks: StatusItem[] = [
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
   { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
   { title: "Database schema", status: "implemented", description: "Core schema tables, namespace columns, and RLS-enabled locked-down tables.", href: `${githubDocsBase}/database-schema.md` },
+  { title: "RLS policies", status: "implemented", description: "Owner-scoped row-level security policy foundation.", href: `${githubDocsBase}/rls-policies.md` },
   { title: "UI foundation", status: "implemented", description: "UI shell, status honesty, and no-fake-data rules.", href: `${githubDocsBase}/ui-foundation.md` },
 ];
