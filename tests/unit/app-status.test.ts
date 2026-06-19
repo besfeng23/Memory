@@ -9,6 +9,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("Operating documentation and contracts");
     expect(titles).toContain("Supabase migration workflow");
     expect(titles).toContain("Auth/session structure");
+    expect(titles).toContain("Core database schema migration");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 
@@ -20,7 +21,6 @@ describe("app status metadata", () => {
     expect(plannedTitles).toEqual(
       expect.arrayContaining([
         "Memory engine",
-        "Database schema",
         "RLS policies",
         "pgvector retrieval",
         "OpenAI integration",
@@ -30,6 +30,7 @@ describe("app status metadata", () => {
       ]),
     );
 
+    expect(plannedTitles).not.toContain("Database schema");
     expect(coreImplementationStatus.every((item) => item.status === "planned")).toBe(true);
   });
 
