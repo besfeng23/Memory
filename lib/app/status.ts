@@ -96,6 +96,11 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Internal mutation wrappers check idempotency, run transaction boundaries, and record outcomes without public routes.",
   },
+  {
+    title: "Idempotency RPC strategy",
+    status: "implemented",
+    description: "Database functions and typed helpers coordinate idempotency claims and outcomes without public mutation routes.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
@@ -207,6 +212,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Internal mutation wrappers now check idempotency before writes and record outcomes, but no public mutation route exists.",
   },
+  {
+    title: "Idempotency RPC boundary",
+    status: "foundation",
+    description: "Database function helpers coordinate idempotent claim and finish records, but no memory mutation is public yet.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -214,6 +224,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
+  { title: "Idempotency RPC strategy", status: "implemented", description: "Database function strategy for idempotency claims and outcomes.", href: `${githubDocsBase}/idempotency-rpc-strategy.md` },
   { title: "Mutation safety", status: "implemented", description: "Internal mutation wrappers for idempotency and transaction boundaries.", href: `${githubDocsBase}/mutation-safety.md` },
   { title: "Transaction and idempotency", status: "implemented", description: "Internal transaction boundary and durable idempotency scaffolding.", href: `${githubDocsBase}/transaction-idempotency.md` },
   { title: "Retrieval service", status: "implemented", description: "Internal owner and namespace filtered retrieval service scaffolding.", href: `${githubDocsBase}/retrieval-service.md` },
