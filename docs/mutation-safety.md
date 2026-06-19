@@ -1,6 +1,6 @@
 # Internal Mutation Safety Orchestration
 
-Pandora Memory Engine now includes internal mutation wrappers that combine validation services with idempotency checks and transaction boundary scaffolding.
+Pandora Memory Engine includes internal mutation wrappers that combine validation services with idempotency checks and transaction boundary scaffolding.
 
 This is not a public mutation API.
 
@@ -20,10 +20,27 @@ The service exposes:
 Each wrapper:
 
 1. Builds a user and namespace scoped idempotency fingerprint.
-2. Checks persistent idempotency records for an existing matching operation.
-3. Blocks duplicate mutations before writes.
-4. Runs the underlying internal mutation through the transaction boundary.
-5. Writes a completed or failed idempotency outcome record.
+2. Blocks duplicate mutations before writes.
+3. Runs the underlying internal mutation through the transaction boundary.
+4. Writes a completed or failed idempotency outcome record.
+
+## Strategies
+
+The wrapper supports two internal idempotency strategies:
+
+- `repository`
+- `rpc`
+
+The default `repository` strategy uses the existing internal repository helper path.
+
+The `rpc` strategy uses:
+
+- `claimIdempotencyRecord`
+- `finishIdempotencyRecord`
+- `claim_idempotency_record`
+- `finish_idempotency_record`
+
+The RPC strategy claims the idempotency record inside the database before the mutation runs. If the claim already exists, the mutation is blocked before any memory row write.
 
 ## Guardrails
 
@@ -54,11 +71,11 @@ The final fingerprint is scoped by:
 
 ## Current Limits
 
-The wrapper can require a transaction adapter, but a real database transaction adapter is still not implemented.
+The wrapper can require a transaction adapter, but a full memory-specific database transaction is still not implemented.
 
-Outcome records are written after the underlying mutation result. Until a true transaction adapter is implemented, a mutation and its idempotency outcome are not guaranteed to commit atomically.
+The RPC strategy gives a database-backed idempotency claim and finish boundary, but the memory row write itself is still performed by the internal service layer.
 
-The persistent lookup currently uses the repository list path before filtering by fingerprint. This is an internal scaffold and not the final conflict detection strategy.
+Until a memory-specific database function or equivalent transaction-safe path exists, the memory row writes and idempotency finish are not guaranteed to commit as a single atomic unit.
 
 ## What This Does Not Add
 
@@ -66,7 +83,6 @@ This step does not add:
 
 - public API routes
 - public mutation behavior
-- real database transaction implementation
 - OpenAI calls
 - pgvector retrieval
 - memory ingest endpoint
@@ -77,4 +93,4 @@ This step does not add:
 
 ## Next Step
 
-Prompt 20 should add a database-backed transaction adapter or RPC strategy before any public mutation route is exposed.
+Prompt 22 should move one internal mutation path into a single database-backed transaction/RPC function before any public mutation route is exposed.
