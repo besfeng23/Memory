@@ -146,13 +146,7 @@ function firstRow<T>(value: unknown, guard: (candidate: unknown) => candidate is
 }
 
 async function createDefaultRpcClient(): Promise<IdempotencyRpcClient> {
-  const client = await createSupabaseServerClient();
-
-  return {
-    async rpc(functionName, args) {
-      return client.rpc(functionName, args);
-    },
-  };
+  return (await createSupabaseServerClient()) as unknown as IdempotencyRpcClient;
 }
 
 export async function claimIdempotencyRecord(
