@@ -13,6 +13,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("RLS policy foundation");
     expect(titles).toContain("Typed database foundation");
     expect(titles).toContain("Repository/service foundation");
+    expect(titles).toContain("Safe core repositories");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 
