@@ -17,6 +17,7 @@ export function GET() {
     memoryCandidateServiceFoundationImplemented: true,
     loggingServiceFoundationImplemented: true,
     patchServiceFoundationImplemented: true,
+    retrievalServiceFoundationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
