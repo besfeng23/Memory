@@ -1,3 +1,5 @@
+const githubDocsBase = "https://github.com/besfeng23/Memory/blob/main/docs";
+
 export type ProjectStatus = "implemented" | "foundation" | "planned" | "stubbed" | "blocked";
 
 export type StatusItem = {
@@ -17,7 +19,7 @@ export const completedPrompts: StatusItem[] = [
     title: "Operating documentation and contracts",
     status: "implemented",
     description: "Architecture, security, API, memory, environment, and coding standards are documented as implementation contracts.",
-    href: "/docs",
+    href: "https://github.com/besfeng23/Memory/tree/main/docs",
   },
   {
     title: "Supabase migration workflow",
@@ -93,10 +95,10 @@ export const safetyRules: StatusItem[] = [
 ];
 
 export const documentationLinks: StatusItem[] = [
-  { title: "Architecture", status: "implemented", description: "System architecture and memory boundaries.", href: "/docs/architecture.md" },
-  { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: "/docs/security.md" },
-  { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: "/docs/api-contracts.md" },
-  { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: "/docs/memory-contracts.md" },
-  { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: "/docs/database-migrations.md" },
-  { title: "UI foundation", status: "implemented", description: "UI shell, status honesty, and no-fake-data rules.", href: "/docs/ui-foundation.md" },
+  { title: "Architecture", status: "implemented", description: "System architecture and memory boundaries.", href: `${githubDocsBase}/architecture.md` },
+  { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
+  { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
+  { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
+  { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
+  { title: "UI foundation", status: "implemented", description: "UI shell, status honesty, and no-fake-data rules.", href: `${githubDocsBase}/ui-foundation.md` },
 ];
