@@ -11,6 +11,7 @@ export function GET() {
     databaseSchemaMigrationImplemented: true,
     securityPolicyFoundationImplemented: true,
     typedDatabaseFoundationImplemented: true,
+    repositoryServiceFoundationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
