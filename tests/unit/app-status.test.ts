@@ -22,6 +22,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("Transaction and idempotency scaffold");
     expect(titles).toContain("Persistent idempotency storage");
     expect(titles).toContain("Mutation safety orchestration");
+    expect(titles).toContain("Idempotency RPC strategy");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 
@@ -50,8 +51,8 @@ describe("app status metadata", () => {
     expect(documentationLinks.length).toBeGreaterThan(0);
 
     for (const doc of documentationLinks) {
-      expect(doc.href).toMatch(/^https:\/\/github\.com\/besfeng23\/Memory\/blob\/main\/docs\//);
-      expect(doc.href).not.toMatch(/^\/docs\//);
+      expect(doc.href?.startsWith("https://github.com/besfeng23/Memory/blob/main/docs/")).toBe(true);
+      expect(doc.href?.startsWith("/docs/")).toBe(false);
     }
   });
 });
