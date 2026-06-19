@@ -3,6 +3,7 @@ export type RepositoryErrorCode =
   | "namespace_mismatch"
   | "invalid_table"
   | "validation_failed"
+  | "idempotency_conflict"
   | "not_found"
   | "database_error";
 
