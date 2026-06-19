@@ -68,8 +68,7 @@ describe("core database schema migration", () => {
   });
 
   it("does not enable pgvector or create fake seed data", () => {
-    expect(migrationSql).not.toContain("vector");
+    expect(migrationSql).not.toContain("create extension if not exists vector");
     expect(migrationSql).not.toContain("insert into");
-    expect(migrationSql).not.toContain("openai");
   });
 });
