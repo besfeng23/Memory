@@ -1,6 +1,6 @@
 # Transaction and Idempotency Scaffolding
 
-Pandora Memory Engine includes internal scaffolding for transaction boundaries, idempotency fingerprints, and persistent idempotency records.
+Pandora Memory Engine includes internal scaffolding for transaction boundaries, idempotency fingerprints, persistent idempotency records, and database-backed idempotency RPC helpers.
 
 This is not a public mutation system yet.
 
@@ -10,7 +10,9 @@ This is not a public mutation system yet.
 lib/services/transaction-boundary.ts
 lib/services/idempotency.ts
 lib/services/persistent-idempotency.ts
+lib/services/idempotency-rpc.ts
 supabase/migrations/20260620000300_persistent_idempotency.sql
+supabase/migrations/20260620000400_idempotency_rpc_strategy.sql
 ```
 
 ## What Exists
@@ -35,6 +37,13 @@ The persistent idempotency layer provides:
 - `findIdempotencyRecord`
 - `idempotency_records` table
 - owner and namespace scoped RLS
+
+The database RPC strategy provides:
+
+- `claim_idempotency_record`
+- `finish_idempotency_record`
+- `claimIdempotencyRecord`
+- `finishIdempotencyRecord`
 
 ## Transaction Boundary
 
@@ -89,18 +98,27 @@ Authenticated users can only select, insert, and update rows where `auth.uid() =
 
 There is no delete policy.
 
+## Database RPC Strategy
+
+The database function strategy coordinates idempotency claims and final outcomes inside PostgreSQL.
+
+`claim_idempotency_record` attempts the claim under the unique owner, namespace, and fingerprint constraint.
+
+`finish_idempotency_record` records the final completed or failed status for the authenticated user and matching fingerprint.
+
+These functions are still not public routes. They are internal database helpers for future server-side service orchestration.
+
 ## Important Limit
 
-A real database transaction adapter is still not implemented.
+Memory row writes, source writes, patch writes, audit writes, and idempotency finish writes are not all committed inside one memory-specific database function yet.
 
-Public mutation routes must not be exposed until transaction behavior and durable conflict handling are implemented end-to-end.
+Public mutation routes must not be exposed until mutation behavior and durable conflict handling are implemented end-to-end.
 
 ## What This Does Not Add
 
 This step does not add:
 
 - public API routes
-- database transaction implementation
 - public mutation behavior
 - OpenAI calls
 - pgvector retrieval
@@ -112,4 +130,4 @@ This step does not add:
 
 ## Next Step
 
-Prompt 19 should add a real transaction adapter strategy or integrate idempotency checks into internal mutation services, still without public mutation routes.
+Prompt 21 should integrate the RPC claim and finish helpers into internal mutation safety orchestration while still avoiding public mutation routes.
