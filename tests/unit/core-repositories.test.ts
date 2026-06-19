@@ -87,15 +87,15 @@ const realLifeContext: RepositoryContext = {
 };
 
 describe("safe core repositories", () => {
-  it("exposes selected core tables and leaves patch behavior for a later prompt", () => {
+  it("exposes selected core tables including validated patch storage", () => {
     expect(SAFE_CORE_REPOSITORY_TABLES).toEqual([
       "memory_items",
       "memory_sources",
+      "memory_patches",
       "retrieval_logs",
       "prompt_logs",
       "audit_logs",
     ]);
-    expect(SAFE_CORE_REPOSITORY_TABLES).not.toContain("memory_patches");
   });
 
   it("lists rows by owner and namespace", async () => {
