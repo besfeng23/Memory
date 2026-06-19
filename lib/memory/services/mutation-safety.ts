@@ -7,6 +7,11 @@ import {
   type PersistentIdempotencyOptions,
 } from "@/lib/services/persistent-idempotency";
 import {
+  claimIdempotencyRecord,
+  finishIdempotencyRecord,
+  type IdempotencyRpcOptions,
+} from "@/lib/services/idempotency-rpc";
+import {
   runTransactionBoundary,
   type TransactionAdapter,
 } from "@/lib/services/transaction-boundary";
@@ -34,8 +39,11 @@ export type MutationSafetyInput = {
   requireTransaction?: boolean;
 };
 
-export type MutationSafetyOptions = PersistentIdempotencyOptions & {
+export type MutationSafetyStrategy = "repository" | "rpc";
+
+export type MutationSafetyOptions = PersistentIdempotencyOptions & IdempotencyRpcOptions & {
   transactionAdapter?: TransactionAdapter | null;
+  idempotencyStrategy?: MutationSafetyStrategy;
 };
 
 export type SafeMemoryCandidateInput = MemoryCandidateServiceInput & {
@@ -55,6 +63,11 @@ type MutationOperationInput = {
 
 type ExistingRecordCheck = {
   idempotency: IdempotencyContext;
+};
+
+type RpcClaimCheck = {
+  idempotency: IdempotencyContext;
+  recordId: string;
 };
 
 function buildMutationIdempotency(input: MutationOperationInput): RepositoryResult<IdempotencyContext> {
@@ -94,6 +107,44 @@ async function assertNoExistingRecord(
   return { ok: true, data: { idempotency } };
 }
 
+async function claimRpcRecord(
+  context: RepositoryContext,
+  idempotency: IdempotencyContext,
+  safety: MutationSafetyInput,
+  options: MutationSafetyOptions,
+): Promise<RepositoryResult<RpcClaimCheck>> {
+  const claimResult = await claimIdempotencyRecord(
+    {
+      context,
+      idempotency,
+      requestHash: safety.requestHash ?? null,
+      expiresAt: safety.expiresAt ?? null,
+      metadata: {
+        ...(safety.metadata ?? {}),
+        mutation_safety: "rpc_claim",
+      },
+    },
+    {
+      createClient: options.createClient,
+    },
+  );
+
+  if (!claimResult.ok) {
+    return claimResult;
+  }
+
+  if (!claimResult.data.wasClaimed) {
+    return repositoryError("idempotency_conflict", "Idempotent mutation was already claimed.", {
+      idempotencyRecordId: claimResult.data.recordId,
+      fingerprint: idempotency.fingerprint,
+      status: claimResult.data.existingStatus,
+      operation: idempotency.operation,
+    });
+  }
+
+  return { ok: true, data: { idempotency, recordId: claimResult.data.recordId } };
+}
+
 async function writeOutcomeRecord(
   context: RepositoryContext,
   idempotency: IdempotencyContext,
@@ -126,37 +177,73 @@ async function writeOutcomeRecord(
   return { ok: true, data: true };
 }
 
-async function runSafeMutation<T>(
+async function finishRpcRecord(
+  context: RepositoryContext,
+  idempotency: IdempotencyContext,
+  recordId: string,
+  safety: MutationSafetyInput,
+  status: "completed" | "failed",
+  options: MutationSafetyOptions,
+): Promise<RepositoryResult<true>> {
+  const finishResult = await finishIdempotencyRecord(
+    {
+      context,
+      idempotency,
+      recordId,
+      status,
+      responseHash: safety.responseHash ?? null,
+      metadata: {
+        ...(safety.metadata ?? {}),
+        mutation_safety: "rpc_finish",
+      },
+    },
+    {
+      createClient: options.createClient,
+    },
+  );
+
+  if (!finishResult.ok) {
+    return finishResult;
+  }
+
+  return { ok: true, data: true };
+}
+
+async function runMutationWithBoundary<T>(
   input: MutationOperationInput,
+  idempotency: IdempotencyContext,
   options: MutationSafetyOptions,
   mutation: () => Promise<RepositoryResult<T>>,
 ): Promise<RepositoryResult<T>> {
-  const idempotencyResult = buildMutationIdempotency(input);
-  if (!idempotencyResult.ok) {
-    return idempotencyResult;
-  }
-
-  const noExistingRecord = await assertNoExistingRecord(input.context, idempotencyResult.data, options);
-  if (!noExistingRecord.ok) {
-    return noExistingRecord;
-  }
-
-  const mutationResult = await runTransactionBoundary(
+  return runTransactionBoundary(
     {
       context: {
         operationName: input.operation,
         requestId: input.context.requestId,
-        idempotency: idempotencyResult.data,
+        idempotency,
       },
       adapter: options.transactionAdapter,
       requireTransaction: input.safety.requireTransaction ?? false,
     },
     mutation,
   );
+}
 
+async function runRepositoryBackedMutation<T>(
+  input: MutationOperationInput,
+  idempotency: IdempotencyContext,
+  options: MutationSafetyOptions,
+  mutation: () => Promise<RepositoryResult<T>>,
+): Promise<RepositoryResult<T>> {
+  const noExistingRecord = await assertNoExistingRecord(input.context, idempotency, options);
+  if (!noExistingRecord.ok) {
+    return noExistingRecord;
+  }
+
+  const mutationResult = await runMutationWithBoundary(input, idempotency, options, mutation);
   const outcomeResult = await writeOutcomeRecord(
     input.context,
-    idempotencyResult.data,
+    idempotency,
     input.safety,
     mutationResult.ok ? "completed" : "failed",
     options,
@@ -167,6 +254,51 @@ async function runSafeMutation<T>(
   }
 
   return mutationResult;
+}
+
+async function runRpcBackedMutation<T>(
+  input: MutationOperationInput,
+  idempotency: IdempotencyContext,
+  options: MutationSafetyOptions,
+  mutation: () => Promise<RepositoryResult<T>>,
+): Promise<RepositoryResult<T>> {
+  const claimResult = await claimRpcRecord(input.context, idempotency, input.safety, options);
+  if (!claimResult.ok) {
+    return claimResult;
+  }
+
+  const mutationResult = await runMutationWithBoundary(input, idempotency, options, mutation);
+  const finishResult = await finishRpcRecord(
+    input.context,
+    idempotency,
+    claimResult.data.recordId,
+    input.safety,
+    mutationResult.ok ? "completed" : "failed",
+    options,
+  );
+
+  if (mutationResult.ok && !finishResult.ok) {
+    return finishResult;
+  }
+
+  return mutationResult;
+}
+
+async function runSafeMutation<T>(
+  input: MutationOperationInput,
+  options: MutationSafetyOptions,
+  mutation: () => Promise<RepositoryResult<T>>,
+): Promise<RepositoryResult<T>> {
+  const idempotencyResult = buildMutationIdempotency(input);
+  if (!idempotencyResult.ok) {
+    return idempotencyResult;
+  }
+
+  if (options.idempotencyStrategy === "rpc") {
+    return runRpcBackedMutation(input, idempotencyResult.data, options, mutation);
+  }
+
+  return runRepositoryBackedMutation(input, idempotencyResult.data, options, mutation);
 }
 
 export async function saveMemoryCandidateWithSafety(
