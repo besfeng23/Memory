@@ -23,8 +23,7 @@ export type IdempotencyRpcResult<T> = Promise<{
 }>;
 
 export type IdempotencyRpcClient = {
-  rpc(functionName: "claim_idempotency_record", args: ClaimIdempotencyRecordArgs): IdempotencyRpcResult<ClaimIdempotencyRecordRow[]>;
-  rpc(functionName: "finish_idempotency_record", args: FinishIdempotencyRecordArgs): IdempotencyRpcResult<FinishIdempotencyRecordRow[]>;
+  rpc(functionName: string, args: Record<string, unknown>): IdempotencyRpcResult<unknown>;
 };
 
 export type IdempotencyClaimInput = {
@@ -89,8 +88,71 @@ function assertContextMatchesIdempotency(context: RepositoryContext, idempotency
   return repositoryOk(true);
 }
 
+function claimArgs(input: IdempotencyClaimInput): ClaimIdempotencyRecordArgs {
+  return {
+    p_namespace: input.context.namespace,
+    p_scope: input.idempotency.scope,
+    p_operation: input.idempotency.operation,
+    p_idempotency_key: input.idempotency.key,
+    p_key_source: input.idempotency.keySource,
+    p_fingerprint: input.idempotency.fingerprint,
+    p_request_hash: input.requestHash ?? null,
+    p_expires_at: input.expiresAt ?? null,
+    p_metadata: toJson(input.metadata ?? {}),
+  };
+}
+
+function finishArgs(input: IdempotencyFinishInput): FinishIdempotencyRecordArgs {
+  return {
+    p_record_id: input.recordId,
+    p_namespace: input.context.namespace,
+    p_fingerprint: input.idempotency.fingerprint,
+    p_status: input.status,
+    p_response_hash: input.responseHash ?? null,
+    p_metadata: toJson(input.metadata ?? {}),
+  };
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isClaimRow(value: unknown): value is ClaimIdempotencyRecordRow {
+  if (!isObjectRecord(value)) {
+    return false;
+  }
+
+  return typeof value.record_id === "string" && typeof value.was_claimed === "boolean";
+}
+
+function isFinishRow(value: unknown): value is FinishIdempotencyRecordRow {
+  if (!isObjectRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.record_id === "string" &&
+    (value.final_status === "completed" || value.final_status === "failed")
+  );
+}
+
+function firstRow<T>(value: unknown, guard: (candidate: unknown) => candidate is T): T | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const row = value[0];
+  return guard(row) ? row : null;
+}
+
 async function createDefaultRpcClient(): Promise<IdempotencyRpcClient> {
-  return (await createSupabaseServerClient()) as IdempotencyRpcClient;
+  const client = await createSupabaseServerClient();
+
+  return {
+    async rpc(functionName, args) {
+      return client.rpc(functionName, args);
+    },
+  };
 }
 
 export async function claimIdempotencyRecord(
@@ -103,25 +165,15 @@ export async function claimIdempotencyRecord(
   }
 
   const client = await (options.createClient ?? createDefaultRpcClient)();
-  const result = await client.rpc("claim_idempotency_record", {
-    p_namespace: input.context.namespace,
-    p_scope: input.idempotency.scope,
-    p_operation: input.idempotency.operation,
-    p_idempotency_key: input.idempotency.key,
-    p_key_source: input.idempotency.keySource,
-    p_fingerprint: input.idempotency.fingerprint,
-    p_request_hash: input.requestHash ?? null,
-    p_expires_at: input.expiresAt ?? null,
-    p_metadata: toJson(input.metadata ?? {}),
-  });
+  const result = await client.rpc("claim_idempotency_record", claimArgs(input) as Record<string, unknown>);
 
   if (result.error) {
     return repositoryError("database_error", result.error.message ?? "Idempotency claim failed.", errorDetails(result.error));
   }
 
-  const row = result.data?.[0];
+  const row = firstRow(result.data, isClaimRow);
   if (!row) {
-    return repositoryError("database_error", "Idempotency claim returned no row.");
+    return repositoryError("database_error", "Idempotency claim returned no valid row.");
   }
 
   return repositoryOk({
@@ -141,22 +193,15 @@ export async function finishIdempotencyRecord(
   }
 
   const client = await (options.createClient ?? createDefaultRpcClient)();
-  const result = await client.rpc("finish_idempotency_record", {
-    p_record_id: input.recordId,
-    p_namespace: input.context.namespace,
-    p_fingerprint: input.idempotency.fingerprint,
-    p_status: input.status,
-    p_response_hash: input.responseHash ?? null,
-    p_metadata: toJson(input.metadata ?? {}),
-  });
+  const result = await client.rpc("finish_idempotency_record", finishArgs(input) as Record<string, unknown>);
 
   if (result.error) {
     return repositoryError("database_error", result.error.message ?? "Idempotency finish failed.", errorDetails(result.error));
   }
 
-  const row = result.data?.[0];
+  const row = firstRow(result.data, isFinishRow);
   if (!row) {
-    return repositoryError("database_error", "Idempotency finish returned no row.");
+    return repositoryError("database_error", "Idempotency finish returned no valid row.");
   }
 
   return repositoryOk({
