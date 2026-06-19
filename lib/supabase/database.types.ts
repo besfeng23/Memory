@@ -299,6 +299,38 @@ type Table<Row> = {
   Relationships: never[];
 };
 
+export type ClaimIdempotencyRecordArgs = {
+  p_namespace: PandoraNamespace;
+  p_scope: string;
+  p_operation: string;
+  p_idempotency_key: string;
+  p_key_source: "client" | "request" | "payload";
+  p_fingerprint: string;
+  p_request_hash?: Nullable<string>;
+  p_expires_at?: Nullable<DbTimestamp>;
+  p_metadata?: Json;
+};
+
+export type ClaimIdempotencyRecordRow = {
+  record_id: DbId;
+  was_claimed: boolean;
+  existing_status: Nullable<string>;
+};
+
+export type FinishIdempotencyRecordArgs = {
+  p_record_id: DbId;
+  p_namespace: PandoraNamespace;
+  p_fingerprint: string;
+  p_status: "completed" | "failed";
+  p_response_hash?: Nullable<string>;
+  p_metadata?: Json;
+};
+
+export type FinishIdempotencyRecordRow = {
+  record_id: DbId;
+  final_status: "completed" | "failed";
+};
+
 export type PublicTables = {
   memory_items: Table<MemoryItemRow>;
   memory_sources: Table<MemorySourceRow>;
@@ -329,11 +361,22 @@ export type PublicTables = {
   au_quality_reviews: Table<AuQualityReviewRow>;
 };
 
+export type PublicFunctions = {
+  claim_idempotency_record: {
+    Args: ClaimIdempotencyRecordArgs;
+    Returns: ClaimIdempotencyRecordRow[];
+  };
+  finish_idempotency_record: {
+    Args: FinishIdempotencyRecordArgs;
+    Returns: FinishIdempotencyRecordRow[];
+  };
+};
+
 export type Database = {
   public: {
     Tables: PublicTables;
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: PublicFunctions;
     Enums: {
       pandora_namespace: PandoraNamespace;
       memory_type: MemoryType;
@@ -350,3 +393,4 @@ export type PublicTableName = keyof PublicTables;
 export type PublicTableRow<TableName extends PublicTableName> = PublicTables[TableName]["Row"];
 export type PublicTableInsert<TableName extends PublicTableName> = PublicTables[TableName]["Insert"];
 export type PublicTableUpdate<TableName extends PublicTableName> = PublicTables[TableName]["Update"];
+export type PublicFunctionName = keyof PublicFunctions;
