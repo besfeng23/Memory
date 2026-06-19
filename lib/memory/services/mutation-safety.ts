@@ -1,4 +1,4 @@
-import { repositoryError, type RepositoryResult } from "@/lib/db/repository-result";
+import { repositoryError, repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
 import type { RepositoryContext } from "@/lib/db/repository-context";
 import { buildIdempotencyContext, type IdempotencyContext, type IdempotencyScope } from "@/lib/services/idempotency";
 import {
@@ -22,6 +22,10 @@ import {
   type PersistedMemoryCandidate,
 } from "@/lib/memory/services/candidate-service";
 import {
+  saveMemoryCandidateTransaction,
+  type CandidateTransactionOptions,
+} from "@/lib/memory/services/candidate-transaction-service";
+import {
   saveMemoryPatch,
   type MemoryPatchServiceInput,
   type MemoryPatchServiceOptions,
@@ -39,9 +43,9 @@ export type MutationSafetyInput = {
   requireTransaction?: boolean;
 };
 
-export type MutationSafetyStrategy = "repository" | "rpc";
+export type MutationSafetyStrategy = "repository" | "rpc" | "candidate_transaction_rpc";
 
-export type MutationSafetyOptions = PersistentIdempotencyOptions & IdempotencyRpcOptions & {
+export type MutationSafetyOptions = PersistentIdempotencyOptions & IdempotencyRpcOptions & CandidateTransactionOptions & {
   transactionAdapter?: TransactionAdapter | null;
   idempotencyStrategy?: MutationSafetyStrategy;
 };
@@ -301,10 +305,60 @@ async function runSafeMutation<T>(
   return runRepositoryBackedMutation(input, idempotencyResult.data, options, mutation);
 }
 
+function transactionResultToPersistedCandidate(result: {
+  memoryItemId: string;
+  sourceIds: string[];
+  idempotencyRecordId: string;
+}): PersistedMemoryCandidate {
+  return {
+    memoryItem: {
+      id: result.memoryItemId,
+      user_id: "",
+      namespace: "real_life",
+      memory_type: "observation",
+      title: "transaction-rpc-result",
+      body: "transaction-rpc-result",
+      strength: "medium",
+      confidence: 1,
+      canon_status: "draft",
+      source_summary: null,
+      metadata: { idempotencyRecordId: result.idempotencyRecordId },
+      is_active: true,
+      created_at: "",
+      updated_at: "",
+    },
+    sources: result.sourceIds.map((id) => ({
+      id,
+      user_id: "",
+      namespace: "real_life",
+      memory_item_id: result.memoryItemId,
+      source_type: "user_statement",
+      source_ref: null,
+      excerpt: null,
+      confidence: 1,
+      metadata: {},
+      created_at: "",
+    })),
+    warnings: [],
+  };
+}
+
 export async function saveMemoryCandidateWithSafety(
   input: SafeMemoryCandidateInput,
   options: MemoryCandidateServiceOptions & MutationSafetyOptions = {},
 ): Promise<RepositoryResult<PersistedMemoryCandidate>> {
+  if (options.idempotencyStrategy === "candidate_transaction_rpc") {
+    const result = await saveMemoryCandidateTransaction(input, {
+      createClient: options.createClient,
+    });
+
+    if (!result.ok) {
+      return result;
+    }
+
+    return repositoryOk(transactionResultToPersistedCandidate(result.data));
+  }
+
   return runSafeMutation(
     {
       context: input.context,
