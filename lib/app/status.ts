@@ -66,6 +66,11 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Service functions combine validation with safe repositories for memory candidate preparation and internal saving.",
   },
+  {
+    title: "Logging services",
+    status: "implemented",
+    description: "Internal services prepare and write retrieval, prompt, and audit logs through safe repositories.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
@@ -152,6 +157,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Candidate services are internal-only and do not expose public ingest or patch routes.",
   },
+  {
+    title: "Internal logging boundary",
+    status: "foundation",
+    description: "Logging services are internal-only and write through owner-bound repositories without exposing public routes.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -159,6 +169,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
+  { title: "Logging services", status: "implemented", description: "Internal retrieval, prompt, and audit logging service functions.", href: `${githubDocsBase}/logging-services.md` },
   { title: "Memory candidate services", status: "implemented", description: "Internal service functions for validated memory candidate preparation and saving.", href: `${githubDocsBase}/memory-candidate-services.md` },
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
   { title: "Memory validation", status: "implemented", description: "Service-layer memory candidate and patch candidate validation rules.", href: `${githubDocsBase}/memory-validation.md` },
