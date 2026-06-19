@@ -11,6 +11,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("Auth/session structure");
     expect(titles).toContain("Core database schema migration");
     expect(titles).toContain("RLS policy foundation");
+    expect(titles).toContain("Typed database foundation");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 
