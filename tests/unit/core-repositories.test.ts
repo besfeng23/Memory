@@ -87,7 +87,7 @@ const realLifeContext: RepositoryContext = {
 };
 
 describe("safe core repositories", () => {
-  it("exposes selected core tables including validated patch storage", () => {
+  it("exposes selected core tables including validated patch and idempotency storage", () => {
     expect(SAFE_CORE_REPOSITORY_TABLES).toEqual([
       "memory_items",
       "memory_sources",
@@ -95,6 +95,7 @@ describe("safe core repositories", () => {
       "retrieval_logs",
       "prompt_logs",
       "audit_logs",
+      "idempotency_records",
     ]);
   });
 
