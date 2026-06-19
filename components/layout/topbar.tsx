@@ -1,12 +1,16 @@
+import Link from "next/link";
+import { StatusBadge } from "@/components/ui/status-badge";
+
 export function Topbar() {
   return (
     <header className="topbar">
       <div>
-        <p className="eyebrow">Foundation</p>
-        <h1>Pandora Memory Engine</h1>
+        <p className="eyebrow">Foundation shell</p>
+        <p className="topbar__title">Pandora Memory Engine</p>
       </div>
-      <div className="status-pill" aria-label="Project status">
-        Base app online
+      <div className="topbar__actions" aria-label="Project status">
+        <StatusBadge status="foundation" />
+        <Link className="button-link" href="/api/health">Health</Link>
       </div>
     </header>
   );

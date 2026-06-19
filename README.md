@@ -36,6 +36,7 @@ Future Codex tasks must follow these operating documents:
 - [Coding standards](docs/coding-standards.md)
 - [Environment](docs/environment.md)
 - [Database migrations](docs/database-migrations.md)
+- [UI foundation](docs/ui-foundation.md)
 - [API contracts](docs/api-contracts.md)
 - [Memory contracts](docs/memory-contracts.md)
 - [Codex execution plan](docs/codex-execution-plan.md)
