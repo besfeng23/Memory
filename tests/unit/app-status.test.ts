@@ -14,6 +14,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("Typed database foundation");
     expect(titles).toContain("Repository/service foundation");
     expect(titles).toContain("Safe core repositories");
+    expect(titles).toContain("Memory validation foundation");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 
