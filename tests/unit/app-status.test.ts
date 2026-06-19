@@ -21,6 +21,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("Retrieval service scaffold");
     expect(titles).toContain("Transaction and idempotency scaffold");
     expect(titles).toContain("Persistent idempotency storage");
+    expect(titles).toContain("Mutation safety orchestration");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 

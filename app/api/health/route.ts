@@ -20,6 +20,7 @@ export function GET() {
     retrievalServiceFoundationImplemented: true,
     transactionIdempotencyFoundationImplemented: true,
     persistentIdempotencyStorageImplemented: true,
+    mutationSafetyOrchestrationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,

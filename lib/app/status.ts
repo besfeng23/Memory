@@ -91,6 +91,11 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "RLS-protected idempotency records and internal persistence helpers exist, still without public mutation routes.",
   },
+  {
+    title: "Mutation safety orchestration",
+    status: "implemented",
+    description: "Internal mutation wrappers check idempotency, run transaction boundaries, and record outcomes without public routes.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
@@ -197,6 +202,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Mutation routes must later use real transaction behavior and persistent idempotency before exposure.",
   },
+  {
+    title: "Internal mutation safety boundary",
+    status: "foundation",
+    description: "Internal mutation wrappers now check idempotency before writes and record outcomes, but no public mutation route exists.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -204,6 +214,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
+  { title: "Mutation safety", status: "implemented", description: "Internal mutation wrappers for idempotency and transaction boundaries.", href: `${githubDocsBase}/mutation-safety.md` },
   { title: "Transaction and idempotency", status: "implemented", description: "Internal transaction boundary and durable idempotency scaffolding.", href: `${githubDocsBase}/transaction-idempotency.md` },
   { title: "Retrieval service", status: "implemented", description: "Internal owner and namespace filtered retrieval service scaffolding.", href: `${githubDocsBase}/retrieval-service.md` },
   { title: "Patch service", status: "implemented", description: "Internal append-only memory patch service functions.", href: `${githubDocsBase}/patch-service.md` },
