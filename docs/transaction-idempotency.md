@@ -1,6 +1,6 @@
 # Transaction and Idempotency Scaffolding
 
-Pandora Memory Engine now includes internal scaffolding for transaction boundaries and idempotency fingerprints.
+Pandora Memory Engine includes internal scaffolding for transaction boundaries, idempotency fingerprints, and persistent idempotency records.
 
 This is not a public mutation system yet.
 
@@ -9,6 +9,8 @@ This is not a public mutation system yet.
 ```text
 lib/services/transaction-boundary.ts
 lib/services/idempotency.ts
+lib/services/persistent-idempotency.ts
+supabase/migrations/20260620000300_persistent_idempotency.sql
 ```
 
 ## What Exists
@@ -25,6 +27,14 @@ The idempotency helper provides:
 - `validateIdempotencyKey`
 - `buildIdempotencyContext`
 - scoped fingerprints tied to user, namespace, operation, and key
+
+The persistent idempotency layer provides:
+
+- `prepareIdempotencyRecord`
+- `saveIdempotencyRecord`
+- `findIdempotencyRecord`
+- `idempotency_records` table
+- owner and namespace scoped RLS
 
 ## Transaction Boundary
 
@@ -52,11 +62,38 @@ The resulting fingerprint includes:
 
 This prevents cross-user and cross-namespace key reuse from colliding.
 
+## Persistent Storage
+
+`idempotency_records` stores:
+
+- owner id
+- namespace
+- scope
+- operation
+- idempotency key
+- key source
+- fingerprint
+- request hash
+- response hash
+- status
+- metadata
+- expiry time
+
+The table has a unique `(user_id, namespace, fingerprint)` constraint.
+
+## RLS
+
+The table has row-level security enabled and forced.
+
+Authenticated users can only select, insert, and update rows where `auth.uid() = user_id`.
+
+There is no delete policy.
+
 ## Important Limit
 
-There is no persistent idempotency table yet.
+A real database transaction adapter is still not implemented.
 
-This means idempotency is not durable across requests or deployments. Public mutation routes must not be exposed until persistent idempotency storage exists.
+Public mutation routes must not be exposed until transaction behavior and durable conflict handling are implemented end-to-end.
 
 ## What This Does Not Add
 
@@ -64,7 +101,7 @@ This step does not add:
 
 - public API routes
 - database transaction implementation
-- persistent idempotency records
+- public mutation behavior
 - OpenAI calls
 - pgvector retrieval
 - memory ingest
@@ -75,4 +112,4 @@ This step does not add:
 
 ## Next Step
 
-Prompt 18 should add persistent idempotency storage and RLS-protected database support, still without public mutation routes.
+Prompt 19 should add a real transaction adapter strategy or integrate idempotency checks into internal mutation services, still without public mutation routes.
