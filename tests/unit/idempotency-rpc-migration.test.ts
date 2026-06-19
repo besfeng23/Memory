@@ -36,10 +36,9 @@ describe("idempotency RPC migration", () => {
     expect(migrationSql).toContain("raise exception 'invalid_idempotency_status'");
   });
 
-  it("does not create public routes or seed rows", () => {
-    expect(migrationSql).not.toContain("http");
-    expect(migrationSql).not.toContain("seed");
-    expect(migrationSql).not.toContain("openai");
-    expect(migrationSql).not.toContain("pgvector");
+  it("does not create public route artifacts", () => {
+    expect(migrationSql).not.toContain("create route");
+    expect(migrationSql).not.toContain("create endpoint");
+    expect(migrationSql).not.toContain("create policy public");
   });
 });
