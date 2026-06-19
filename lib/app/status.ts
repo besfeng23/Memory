@@ -71,13 +71,18 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Internal services prepare and write retrieval, prompt, and audit logs through safe repositories.",
   },
+  {
+    title: "Patch service",
+    status: "implemented",
+    description: "Internal service validates memory patch candidates, writes append-only patch rows, and records audit logs.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
   {
     title: "Memory engine",
     status: "planned",
-    description: "No ingest route, extraction runtime, retrieval, patch persistence, or memory timeline behavior is implemented yet.",
+    description: "No public ingest route, extraction runtime, retrieval, or memory timeline behavior is implemented yet.",
   },
   {
     title: "pgvector retrieval",
@@ -125,7 +130,7 @@ export const safetyRules: StatusItem[] = [
   {
     title: "Append-only memory changes",
     status: "foundation",
-    description: "Schema includes append-only memory patch and audit log tables; patch behavior is still planned.",
+    description: "Memory patch writes go through an internal create-only service and still expose no public routes.",
   },
   {
     title: "User-owned RLS boundary",
@@ -162,6 +167,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Logging services are internal-only and write through owner-bound repositories without exposing public routes.",
   },
+  {
+    title: "Internal patch boundary",
+    status: "foundation",
+    description: "Patch services validate patch candidates and write audit rows without exposing mutation routes.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -169,6 +179,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
+  { title: "Patch service", status: "implemented", description: "Internal append-only memory patch service functions.", href: `${githubDocsBase}/patch-service.md` },
   { title: "Logging services", status: "implemented", description: "Internal retrieval, prompt, and audit logging service functions.", href: `${githubDocsBase}/logging-services.md` },
   { title: "Memory candidate services", status: "implemented", description: "Internal service functions for validated memory candidate preparation and saving.", href: `${githubDocsBase}/memory-candidate-services.md` },
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
