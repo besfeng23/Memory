@@ -17,6 +17,7 @@ export const SAFE_CORE_REPOSITORY_TABLES = [
   "retrieval_logs",
   "prompt_logs",
   "audit_logs",
+  "idempotency_records",
 ] as const satisfies readonly PublicTableName[];
 
 export type SafeCoreRepositoryTable = (typeof SAFE_CORE_REPOSITORY_TABLES)[number];
@@ -193,4 +194,8 @@ export function createPromptLogsRepository(options?: ServerCoreRepositoryOptions
 
 export function createAuditLogsRepository(options?: ServerCoreRepositoryOptions) {
   return createServerCoreRepository("audit_logs", options);
+}
+
+export function createIdempotencyRecordsRepository(options?: ServerCoreRepositoryOptions) {
+  return createServerCoreRepository("idempotency_records", options);
 }
