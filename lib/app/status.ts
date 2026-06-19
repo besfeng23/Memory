@@ -56,13 +56,18 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Server-side repositories exist for selected core tables with owner and namespace filters.",
   },
+  {
+    title: "Memory validation foundation",
+    status: "implemented",
+    description: "Service-layer validators for memory candidates and patch candidates are present without public routes.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
   {
     title: "Memory engine",
     status: "planned",
-    description: "No ingest, extraction, retrieval, validation, patching, or memory timeline behavior is implemented yet.",
+    description: "No ingest, extraction, retrieval, patch persistence, or memory timeline behavior is implemented yet.",
   },
   {
     title: "pgvector retrieval",
@@ -110,12 +115,12 @@ export const safetyRules: StatusItem[] = [
   {
     title: "Append-only memory changes",
     status: "foundation",
-    description: "Schema includes append-only memory patch and audit log tables; service behavior is still planned.",
+    description: "Schema includes append-only memory patch and audit log tables; persistence behavior is still planned.",
   },
   {
     title: "User-owned RLS boundary",
     status: "foundation",
-    description: "The database policy layer now has an owner boundary; service-layer validation remains planned.",
+    description: "The database policy layer now has an owner boundary; service-layer validation remains separate.",
   },
   {
     title: "Typed table boundaries",
@@ -132,6 +137,11 @@ export const safetyRules: StatusItem[] = [
     status: "foundation",
     description: "Core repositories filter by owner and namespace, and still expose no public memory API surface.",
   },
+  {
+    title: "Memory validator guardrails",
+    status: "foundation",
+    description: "Memory candidates are checked for namespace, type, source, and patch safety before any future persistence path.",
+  },
 ];
 
 export const documentationLinks: StatusItem[] = [
@@ -140,6 +150,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
+  { title: "Memory validation", status: "implemented", description: "Service-layer memory candidate and patch candidate validation rules.", href: `${githubDocsBase}/memory-validation.md` },
   { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
   { title: "Database schema", status: "implemented", description: "Core schema tables, namespace columns, and RLS-enabled locked-down tables.", href: `${githubDocsBase}/database-schema.md` },
   { title: "Database types", status: "implemented", description: "Schema-aligned TypeScript database types and table helpers.", href: `${githubDocsBase}/database-types.md` },
