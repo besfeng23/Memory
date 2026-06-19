@@ -1,7 +1,6 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
 
-export default defineConfig({
+export default {
   esbuild: {
     jsx: "automatic",
     jsxImportSource: "react",
@@ -17,4 +16,4 @@ export default defineConfig({
     passWithNoTests: false,
     setupFiles: ["./tests/setup.ts"],
   },
-});
+};
