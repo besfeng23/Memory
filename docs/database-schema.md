@@ -1,6 +1,6 @@
 # Database Schema
 
-Pandora Memory Engine now includes an initial Supabase SQL migration for the core database shape. This is a schema foundation only. It does not implement memory ingestion, retrieval, OpenAI calls, GPT Actions, MCP, service-layer behavior, pgvector retrieval, or UI-backed memory features.
+Pandora Memory Engine includes an initial Supabase SQL migration for the core database shape. This is a schema foundation only. It does not implement memory ingestion, retrieval, OpenAI calls, GPT Actions, MCP, service-layer behavior, pgvector retrieval, or UI-backed memory features.
 
 ## Migration
 
@@ -41,11 +41,11 @@ This supports strict separation between real-life and fictional AU/story continu
 
 ## RLS State
 
-The migration enables Row Level Security on all user-owned tables, but it intentionally does not create RLS policies yet.
+The core schema enables Row Level Security on all user-owned tables.
 
-This means the schema is locked down until a future security migration adds explicit policies.
+The follow-up RLS policy foundation adds owner-scoped rules for the same user-owned tables. See `docs/rls-policies.md` for details.
 
-Prompt 8 should add tested RLS policies. Until those policies exist, application features must not treat database reads/writes as production-ready.
+Application memory features are still not live. The service layer must still derive `user_id` from the authenticated session, validate namespace intent, and enforce append-only memory behavior.
 
 ## pgvector State
 
@@ -68,7 +68,6 @@ These tables prepare for append-only memory changes and auditable retrieval/writ
 
 This schema migration does not include:
 
-- RLS policies.
 - pgvector.
 - Embedding tables.
 - OpenAI API calls.
@@ -87,11 +86,11 @@ This schema migration does not include:
 
 Before memory features can be considered live, future prompts must add:
 
-1. RLS policies and tests.
-2. Generated Supabase database types.
-3. Service-layer repositories.
-4. Memory validation and append-only patch logic.
-5. Retrieval logging.
+1. Generated Supabase database types.
+2. Service-layer repositories.
+3. Memory validation and append-only patch logic.
+4. Retrieval logging.
+5. Audit logging behavior.
 6. AU canon guard behavior.
 7. Real-life evidence handling.
 8. pgvector or other retrieval implementation.
