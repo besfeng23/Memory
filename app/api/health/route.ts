@@ -8,8 +8,10 @@ export function GET() {
     project: "pandora-memory-engine",
     status: "foundation-ready",
     authSessionStructureImplemented: true,
+    databaseSchemaMigrationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
+    rlsPoliciesImplemented: false,
     openAiIntegrationImplemented: false,
   });
 }
