@@ -1,6 +1,7 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/lib/supabase/database.types";
 
 function getPublicEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY") {
   return process.env[name];
@@ -21,7 +22,7 @@ export function hasSupabaseBrowserConfig() {
 }
 
 export function createSupabaseBrowserClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     getRequiredPublicEnv("NEXT_PUBLIC_SUPABASE_URL"),
     getRequiredPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   );
