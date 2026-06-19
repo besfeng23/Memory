@@ -14,10 +14,10 @@ Current implementation status:
 
 | Area | Status |
 |---|---|
-| Architecture specification | Defined |
+| Architecture specification | Defined in README and docs |
 | Database model | Required, pending implementation |
 | RLS/security model | Required, pending implementation |
-| Next.js App Router app | Required, pending implementation |
+| Next.js App Router app | Foundation implemented |
 | OpenAI Responses API integration | Required, pending implementation |
 | Embedding pipeline | Required, pending implementation |
 | AU continuity engine | Required, pending implementation |
@@ -26,6 +26,20 @@ Current implementation status:
 | MCP server | Optional, pending implementation |
 
 Do not treat any route, table, or feature listed below as complete until the implementation exists in the codebase.
+
+## Documentation
+
+Future Codex tasks must follow these operating documents:
+
+- [Architecture](docs/architecture.md)
+- [Security](docs/security.md)
+- [Coding standards](docs/coding-standards.md)
+- [Environment](docs/environment.md)
+- [API contracts](docs/api-contracts.md)
+- [Memory contracts](docs/memory-contracts.md)
+- [Codex execution plan](docs/codex-execution-plan.md)
+
+These documents are authoritative for namespace isolation, append-only patches, UI honesty, server-only secrets, validation, audit logging, and planned-vs-implemented API status.
 
 ---
 
