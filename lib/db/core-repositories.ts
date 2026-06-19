@@ -13,6 +13,7 @@ import { assertTableNamespace } from "@/lib/db/repository-guards";
 export const SAFE_CORE_REPOSITORY_TABLES = [
   "memory_items",
   "memory_sources",
+  "memory_patches",
   "retrieval_logs",
   "prompt_logs",
   "audit_logs",
@@ -176,6 +177,10 @@ export function createMemoryItemsRepository(options?: ServerCoreRepositoryOption
 
 export function createMemorySourcesRepository(options?: ServerCoreRepositoryOptions) {
   return createServerCoreRepository("memory_sources", options);
+}
+
+export function createMemoryPatchesRepository(options?: ServerCoreRepositoryOptions) {
+  return createServerCoreRepository("memory_patches", options);
 }
 
 export function createRetrievalLogsRepository(options?: ServerCoreRepositoryOptions) {
