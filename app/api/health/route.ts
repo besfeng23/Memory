@@ -7,6 +7,7 @@ export function GET() {
     ok: true,
     project: "pandora-memory-engine",
     status: "foundation-ready",
+    authSessionStructureImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,

@@ -82,3 +82,16 @@ button, input, textarea, select { font: inherit; }
   .topbar, .page-header { align-items: flex-start; flex-direction: column; }
   .content { padding: 22px; }
 }
+.auth-page { align-items: center; display: grid; min-height: 100vh; padding: 24px; }
+.auth-page .section-card { margin: 0 auto; max-width: 680px; width: 100%; }
+.auth-form { display: grid; gap: 12px; margin: 20px 0; }
+.auth-form label { font-weight: 800; }
+.auth-form input { background: #fff; border: 1px solid var(--line-strong); border-radius: 14px; color: var(--text); padding: 12px 14px; width: 100%; }
+.auth-form button { justify-content: center; width: fit-content; }
+.auth-form__message { border-radius: 14px; line-height: 1.6; margin: 4px 0 0; padding: 12px 14px; }
+.auth-form__message--sent { background: var(--success-bg); color: var(--success-text); }
+.auth-form__message--error { background: var(--blocked-bg); color: var(--blocked-text); }
+.auth-note { color: var(--muted); line-height: 1.7; }
+.auth-status-line, .auth-status-panel { align-items: flex-start; display: flex; gap: 12px; }
+.auth-status-panel h3 { letter-spacing: -0.03em; margin: 0 0 6px; }
+.auth-status-panel p { line-height: 1.65; margin: 0 0 12px; }

@@ -17,6 +17,7 @@ Current implementation status:
 | Architecture specification | Defined in README and docs |
 | Database model | Required, pending implementation |
 | RLS/security model | Required, pending implementation |
+| Auth/session structure | Foundation implemented |
 | Next.js App Router app | Foundation implemented |
 | OpenAI Responses API integration | Required, pending implementation |
 | Embedding pipeline | Required, pending implementation |
@@ -33,6 +34,7 @@ Future Codex tasks must follow these operating documents:
 
 - [Architecture](docs/architecture.md)
 - [Security](docs/security.md)
+- [Auth and session boundary](docs/auth-session.md)
 - [Coding standards](docs/coding-standards.md)
 - [Environment](docs/environment.md)
 - [Database migrations](docs/database-migrations.md)

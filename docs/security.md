@@ -2,6 +2,10 @@
 
 Pandora Memory Engine handles sensitive real-life memory and fictional AU/story continuity. Security controls must be implemented before production memory features are treated as live.
 
+## Auth and Session Boundary
+
+Supabase Auth is the authentication provider. Server-side helpers must read the current user and session from Supabase-managed request cookies. Future APIs must derive ownership from the authenticated session user ID and must not trust client-submitted `user_id` values. `GET /api/session` may expose only safe public status fields and must never return tokens, raw sessions, service role keys, or other secrets. The dashboard may show auth status, but it must not imply memory data, profile records, roles, permissions, or audit logs exist before those systems are implemented.
+
 ## Supabase RLS
 
 Supabase Row Level Security must be enabled on every user-owned table. Policies must ensure users can only access their own rows and cannot bypass namespace isolation.

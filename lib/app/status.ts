@@ -26,6 +26,11 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Supabase CLI scripts and placeholder migration workflow are prepared without production memory schema.",
   },
+  {
+    title: "Auth/session structure",
+    status: "implemented",
+    description: "Supabase Auth helpers, magic-link login, callback, logout, and safe session status API are present.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
@@ -98,6 +103,7 @@ export const documentationLinks: StatusItem[] = [
   { title: "Architecture", status: "implemented", description: "System architecture and memory boundaries.", href: `${githubDocsBase}/architecture.md` },
   { title: "Security", status: "implemented", description: "Secrets, RLS, namespace, and audit requirements.", href: `${githubDocsBase}/security.md` },
   { title: "API contracts", status: "implemented", description: "Planned route surface and current route status.", href: `${githubDocsBase}/api-contracts.md` },
+  { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
   { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
   { title: "UI foundation", status: "implemented", description: "UI shell, status honesty, and no-fake-data rules.", href: `${githubDocsBase}/ui-foundation.md` },

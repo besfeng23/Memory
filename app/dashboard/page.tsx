@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { getCurrentUser } from "@/lib/security/auth";
 import { completedPrompts, coreImplementationStatus, documentationLinks, safetyRules } from "@/lib/app/status";
 
 function StatusList({ items }: Readonly<{ items: typeof coreImplementationStatus }>) {
@@ -21,7 +22,11 @@ function StatusList({ items }: Readonly<{ items: typeof coreImplementationStatus
   );
 }
 
-export default function DashboardPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+
   return (
     <AppShell>
       <div className="page-stack">
@@ -31,6 +36,21 @@ export default function DashboardPage() {
           description="This dashboard tracks completed foundation work and planned Pandora modules. It does not expose memory features because the memory engine and database schema are not implemented."
           actions={<Link className="button-link" href="/api/health">View health endpoint</Link>}
         />
+
+        <SectionCard title="Authentication status" description="Server-side Supabase session lookup for the current request. No profile or memory records are loaded.">
+          <div className="auth-status-panel">
+            <StatusBadge status={user ? "implemented" : "foundation"} />
+            <div>
+              <h3>{user ? "Authenticated" : "Not authenticated"}</h3>
+              <p>{user ? `Signed in as ${user.email ?? user.id}. Future memory APIs must derive ownership from this session user ID.` : "No Supabase Auth user is present for this request. The dashboard remains visible as a foundation status page."}</p>
+              <div className="topbar__actions">
+                <Link className="button-link" href="/auth/login">Login</Link>
+                <Link className="button-link" href="/auth/logout">Logout</Link>
+                <Link className="button-link" href="/api/session">Session API</Link>
+              </div>
+            </div>
+          </div>
+        </SectionCard>
 
         <SectionCard title="Completed prompts" description="Work that exists in the repository today.">
           <StatusList items={completedPrompts} />

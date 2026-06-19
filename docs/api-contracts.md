@@ -8,13 +8,23 @@ This document lists the planned Pandora Memory Engine API surface and the curren
 - **Stubbed:** Route exists but only returns placeholder behavior or does not perform the full contract.
 - **Planned:** Route does not exist yet.
 
-At this stage, only `GET /api/health` is implemented. All memory, AU, real-life, OpenAI, GPT Actions, and MCP routes are planned and must not be treated as live.
+At this stage, `GET /api/health`, `GET /api/session`, and foundation Supabase Auth routes are implemented. All memory, AU, real-life, OpenAI, GPT Actions, and MCP routes are planned and must not be treated as live.
+
+## Foundation and Auth Routes
+
+| Status | Method | Route | Purpose |
+|---|---|---|---|
+| Implemented | `GET` | `/api/health` | Public foundation health check. Reports auth/session structure status and that memory engine, database schema, and OpenAI integration are not implemented. |
+| Implemented | `GET` | `/api/session` | Public-safe session status. Returns whether a user is authenticated and safe user metadata only; never returns tokens or raw sessions. |
+| Foundation | `GET` | `/auth/login` | Supabase magic-link login page using only public browser-safe Supabase configuration. |
+| Foundation | `GET` | `/auth/callback` | Exchanges a Supabase callback code for a server-managed session and redirects without logging tokens. |
+| Foundation | `GET`/`POST` | `/auth/logout` | Signs out the current Supabase session server-side and redirects to login. |
 
 ## Health Route
 
 | Status | Method | Route | Purpose |
 |---|---|---|---|
-| Implemented | `GET` | `/api/health` | Foundation health check. Reports that the memory engine, database schema, and OpenAI integration are not implemented. |
+| Implemented | `GET` | `/api/health` | Public foundation health check. Reports that auth/session structure is implemented and that memory engine, database schema, and OpenAI integration are not implemented. |
 
 ## Memory Routes
 
