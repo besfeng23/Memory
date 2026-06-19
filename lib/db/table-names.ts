@@ -7,6 +7,7 @@ export const CORE_TABLE_NAMES = [
   "retrieval_logs",
   "prompt_logs",
   "audit_logs",
+  "idempotency_records",
 ] as const satisfies readonly PublicTableName[];
 
 export const REAL_LIFE_TABLE_NAMES = [

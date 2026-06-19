@@ -18,8 +18,11 @@ The repository foundation currently covers:
 - `retrieval_logs`
 - `prompt_logs`
 - `audit_logs`
+- `idempotency_records`
 
 `memory_patches` was added only after memory patch validation and an internal append-only patch service existed.
+
+`idempotency_records` was added only after transaction and idempotency scaffolding existed, and after the table received owner-scoped RLS.
 
 ## What the Repositories Do
 
@@ -75,4 +78,4 @@ Future repositories must keep the same guardrails:
 
 ## Current Limit
 
-Repository calls are still not wrapped in a transaction layer. Public mutation routes should not be exposed until transaction and idempotency strategy are added.
+Generic repository calls are still not wrapped in a real database transaction layer. Public mutation routes should not be exposed until transaction behavior and idempotency conflict handling are implemented end-to-end.

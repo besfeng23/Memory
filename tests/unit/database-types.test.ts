@@ -18,6 +18,7 @@ const requiredTables = [
   "retrieval_logs",
   "prompt_logs",
   "audit_logs",
+  "idempotency_records",
   "people",
   "relationships",
   "relationship_events",
@@ -48,12 +49,14 @@ describe("database type foundation", () => {
 
   it("groups core, real-life, and AU tables", () => {
     expect(CORE_TABLE_NAMES).toContain("memory_items");
+    expect(CORE_TABLE_NAMES).toContain("idempotency_records");
     expect(REAL_LIFE_TABLE_NAMES).toContain("people");
     expect(AU_TABLE_NAMES).toContain("au_worlds");
   });
 
   it("validates table name helpers", () => {
     expect(isPandoraTableName("memory_items")).toBe(true);
+    expect(isPandoraTableName("idempotency_records")).toBe(true);
     expect(isPandoraTableName("unknown_table")).toBe(false);
     expect(isRealLifeTableName("people")).toBe(true);
     expect(isRealLifeTableName("au_worlds")).toBe(false);
@@ -65,6 +68,7 @@ describe("database type foundation", () => {
     expect(expectedNamespaceForTable("people")).toBe("real_life");
     expect(expectedNamespaceForTable("au_worlds")).toBe("au");
     expect(expectedNamespaceForTable("memory_items")).toBeNull();
+    expect(expectedNamespaceForTable("idempotency_records")).toBeNull();
 
     expect(tableAllowsNamespace("people", "real_life")).toBe(true);
     expect(tableAllowsNamespace("people", "au")).toBe(false);
@@ -72,6 +76,8 @@ describe("database type foundation", () => {
     expect(tableAllowsNamespace("au_worlds", "real_life")).toBe(false);
     expect(tableAllowsNamespace("memory_items", "real_life")).toBe(true);
     expect(tableAllowsNamespace("memory_items", "au")).toBe(true);
+    expect(tableAllowsNamespace("idempotency_records", "real_life")).toBe(true);
+    expect(tableAllowsNamespace("idempotency_records", "au")).toBe(true);
   });
 
   it("exposes schema-aligned row types", () => {
@@ -92,6 +98,24 @@ describe("database type foundation", () => {
       updated_at: "2026-01-01T00:00:00.000Z",
     } satisfies PublicTableRow<"memory_items">;
 
+    const idempotencyRecord = {
+      id: "idempotency_id",
+      user_id: "user_id",
+      namespace: "real_life",
+      scope: "memory_patch",
+      operation: "saveMemoryPatch",
+      idempotency_key: "client-key",
+      key_source: "client",
+      fingerprint: "fingerprint",
+      request_hash: null,
+      response_hash: null,
+      status: "started",
+      metadata: {},
+      expires_at: null,
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
+    } satisfies PublicTableRow<"idempotency_records">;
+
     const auWorld = {
       id: "world_id",
       user_id: "user_id",
@@ -106,6 +130,7 @@ describe("database type foundation", () => {
     } satisfies PublicTableRow<"au_worlds">;
 
     expect(memoryItem.namespace).toBe("real_life");
+    expect(idempotencyRecord.status).toBe("started");
     expect(auWorld.namespace).toBe("au");
   });
 });

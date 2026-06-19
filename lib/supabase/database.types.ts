@@ -92,6 +92,19 @@ export type AuditLogRow = BaseOwnedRow & {
   after_snapshot: Nullable<Json>;
 };
 
+export type IdempotencyRecordRow = BaseOwnedRow & {
+  scope: string;
+  operation: string;
+  idempotency_key: string;
+  key_source: "client" | "request" | "payload";
+  fingerprint: string;
+  request_hash: Nullable<string>;
+  response_hash: Nullable<string>;
+  status: "started" | "completed" | "failed";
+  expires_at: Nullable<DbTimestamp>;
+  updated_at: DbTimestamp;
+};
+
 export type PersonRow = MutableOwnedRow & {
   namespace: "real_life";
   display_name: string;
@@ -293,6 +306,7 @@ export type PublicTables = {
   retrieval_logs: Table<RetrievalLogRow>;
   prompt_logs: Table<PromptLogRow>;
   audit_logs: Table<AuditLogRow>;
+  idempotency_records: Table<IdempotencyRecordRow>;
   people: Table<PersonRow>;
   relationships: Table<RelationshipRow>;
   relationship_events: Table<RelationshipEventRow>;
