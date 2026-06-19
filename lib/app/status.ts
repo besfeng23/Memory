@@ -31,6 +31,11 @@ export const completedPrompts: StatusItem[] = [
     status: "implemented",
     description: "Supabase Auth helpers, magic-link login, callback, logout, and safe session status API are present.",
   },
+  {
+    title: "Core database schema migration",
+    status: "implemented",
+    description: "Initial Supabase migration defines core, real-life, and AU/story tables with RLS enabled and policies deferred.",
+  },
 ];
 
 export const coreImplementationStatus: StatusItem[] = [
@@ -40,14 +45,9 @@ export const coreImplementationStatus: StatusItem[] = [
     description: "No ingest, extraction, retrieval, validation, patching, or memory timeline behavior is implemented yet.",
   },
   {
-    title: "Database schema",
-    status: "planned",
-    description: "Production memory tables, real-life tables, AU tables, and derived-state tables have not been created.",
-  },
-  {
     title: "RLS policies",
     status: "planned",
-    description: "Row-level security policies are required before user-owned memory data exists, but they are not implemented yet.",
+    description: "Row-level security is enabled on user-owned tables, but explicit policies are not implemented yet.",
   },
   {
     title: "pgvector retrieval",
@@ -62,7 +62,7 @@ export const coreImplementationStatus: StatusItem[] = [
   {
     title: "AU continuity engine",
     status: "planned",
-    description: "Canon guardrails, scene aftermath, retcons, character state, and AU relationship state are documented only.",
+    description: "Canon guardrails, scene aftermath, retcons, character state, and AU relationship state are schema-ready but not implemented as behavior.",
   },
   {
     title: "GPT Actions",
@@ -94,8 +94,8 @@ export const safetyRules: StatusItem[] = [
   },
   {
     title: "Append-only memory changes",
-    status: "planned",
-    description: "Future memory edits must be patch-based and auditable rather than silent overwrites.",
+    status: "foundation",
+    description: "Schema includes append-only memory patch and audit log tables; service behavior is still planned.",
   },
 ];
 
@@ -106,5 +106,6 @@ export const documentationLinks: StatusItem[] = [
   { title: "Auth sessions", status: "implemented", description: "Supabase Auth session boundary and safe session API.", href: `${githubDocsBase}/auth-session.md` },
   { title: "Memory contracts", status: "implemented", description: "Prompt and behavioral contracts for future memory workflows.", href: `${githubDocsBase}/memory-contracts.md` },
   { title: "Database migrations", status: "implemented", description: "Supabase migration workflow and explicit schema non-goals.", href: `${githubDocsBase}/database-migrations.md` },
+  { title: "Database schema", status: "implemented", description: "Core schema tables, namespace columns, and RLS-enabled locked-down tables.", href: `${githubDocsBase}/database-schema.md` },
   { title: "UI foundation", status: "implemented", description: "UI shell, status honesty, and no-fake-data rules.", href: `${githubDocsBase}/ui-foundation.md` },
 ];

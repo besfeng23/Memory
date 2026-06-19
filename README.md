@@ -15,8 +15,8 @@ Current implementation status:
 | Area | Status |
 |---|---|
 | Architecture specification | Defined in README and docs |
-| Database model | Required, pending implementation |
-| RLS/security model | Required, pending implementation |
+| Database model | Core schema migration implemented; RLS policies pending |
+| RLS/security model | RLS enabled in schema; policies pending implementation |
 | Auth/session structure | Foundation implemented |
 | Next.js App Router app | Foundation implemented |
 | OpenAI Responses API integration | Required, pending implementation |
@@ -38,9 +38,11 @@ Future Codex tasks must follow these operating documents:
 - [Coding standards](docs/coding-standards.md)
 - [Environment](docs/environment.md)
 - [Database migrations](docs/database-migrations.md)
+- [Database schema](docs/database-schema.md)
 - [UI foundation](docs/ui-foundation.md)
 - [API contracts](docs/api-contracts.md)
 - [Memory contracts](docs/memory-contracts.md)
+- [Testing](docs/testing.md)
 - [Codex execution plan](docs/codex-execution-plan.md)
 
 These documents are authoritative for namespace isolation, append-only patches, UI honesty, server-only secrets, validation, audit logging, and planned-vs-implemented API status.
