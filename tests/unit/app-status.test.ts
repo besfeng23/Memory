@@ -18,6 +18,7 @@ describe("app status metadata", () => {
     expect(titles).toContain("Memory candidate services");
     expect(titles).toContain("Logging services");
     expect(titles).toContain("Patch service");
+    expect(titles).toContain("Retrieval service scaffold");
     expect(completedPrompts.every((item) => item.status === "implemented")).toBe(true);
   });
 
