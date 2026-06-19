@@ -30,6 +30,12 @@ API routes must call service-layer functions where possible. Route handlers shou
 
 The service role key must never be imported into React/client components. OpenAI credentials, database URLs, Supabase JWT secrets, GPT Actions keys, and MCP tokens are server-only.
 
+## Test Discipline
+
+Every future feature must include tests. Tests must preserve UI honesty and the no-fake-data rule. Memory-related tests must prove AU/story and real-life namespace isolation before the feature is treated as implemented.
+
+Tests must not require production secrets, production Supabase connections, or fake operational memory data. CI must pass before merging.
+
 ## Required Test Coverage
 
 Future implementation tasks must add test coverage for:
