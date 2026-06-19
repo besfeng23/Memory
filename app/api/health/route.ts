@@ -10,6 +10,7 @@ export function GET() {
     authSessionStructureImplemented: true,
     databaseSchemaMigrationImplemented: true,
     securityPolicyFoundationImplemented: true,
+    typedDatabaseFoundationImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
