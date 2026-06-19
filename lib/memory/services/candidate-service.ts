@@ -1,4 +1,4 @@
-import type { MemoryItemRow, MemorySourceRow, PublicTableInsert } from "@/lib/supabase/database.types";
+import type { Json, MemoryItemRow, MemorySourceRow, PublicTableInsert } from "@/lib/supabase/database.types";
 import type { RepositoryContext } from "@/lib/db/repository-context";
 import { createMemoryItemsRepository, createMemorySourcesRepository } from "@/lib/db/core-repositories";
 import { repositoryError, repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
@@ -56,6 +56,10 @@ function defaultNow() {
   return new Date().toISOString();
 }
 
+function toJson(value: Record<string, unknown>): Json {
+  return value as Json;
+}
+
 function toMemoryItemInsert(candidate: MemoryCandidate, now: string): Omit<PublicTableInsert<"memory_items">, "user_id"> {
   return {
     namespace: candidate.namespace,
@@ -66,7 +70,7 @@ function toMemoryItemInsert(candidate: MemoryCandidate, now: string): Omit<Publi
     confidence: candidate.confidence,
     canon_status: candidate.canon_status,
     source_summary: candidate.source_summary ?? null,
-    metadata: candidate.metadata,
+    metadata: toJson(candidate.metadata),
     is_active: true,
     updated_at: now,
   };
@@ -80,7 +84,7 @@ function toSourceInsert(
     source_ref: candidate.source_ref ?? null,
     excerpt: candidate.excerpt ?? null,
     confidence: candidate.confidence,
-    metadata: candidate.metadata,
+    metadata: toJson(candidate.metadata),
   };
 }
 
