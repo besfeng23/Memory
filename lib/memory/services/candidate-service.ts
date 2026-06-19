@@ -18,12 +18,13 @@ export type MemoryCandidateServiceInput = {
 export type MemoryCandidateServiceOptions = {
   memoryItemsRepository?: ReturnType<typeof createMemoryItemsRepository>;
   memorySourcesRepository?: ReturnType<typeof createMemorySourcesRepository>;
+  now?: () => string;
 };
 
 export type PreparedMemoryCandidate = {
   candidate: MemoryCandidate;
   memoryItem: Omit<PublicTableInsert<"memory_items">, "user_id">;
-  sources: Array<Omit<PublicTableInsert<"memory_sources">, "user_id" | "memory_item_id">>;
+  sources: Array<Omit<PublicTableInsert<"memory_sources">, "user_id" | "memory_item_id" | "namespace">>;
   warnings: MemoryValidationError[];
 };
 
@@ -51,7 +52,11 @@ function validationErrorDetails(errors: MemoryValidationError[]) {
   };
 }
 
-function toMemoryItemInsert(candidate: MemoryCandidate): Omit<PublicTableInsert<"memory_items">, "user_id"> {
+function defaultNow() {
+  return new Date().toISOString();
+}
+
+function toMemoryItemInsert(candidate: MemoryCandidate, now: string): Omit<PublicTableInsert<"memory_items">, "user_id"> {
   return {
     namespace: candidate.namespace,
     memory_type: candidate.memory_type,
@@ -63,21 +68,26 @@ function toMemoryItemInsert(candidate: MemoryCandidate): Omit<PublicTableInsert<
     source_summary: candidate.source_summary ?? null,
     metadata: candidate.metadata,
     is_active: true,
+    updated_at: now,
   };
 }
 
-function toSourceInsert(candidate: MemorySourceCandidate): Omit<PublicTableInsert<"memory_sources">, "user_id" | "memory_item_id"> {
+function toSourceInsert(
+  candidate: MemorySourceCandidate,
+): Omit<PublicTableInsert<"memory_sources">, "user_id" | "memory_item_id" | "namespace"> {
   return {
-    namespace: undefined,
     source_type: candidate.source_type,
     source_ref: candidate.source_ref ?? null,
     excerpt: candidate.excerpt ?? null,
     confidence: candidate.confidence,
     metadata: candidate.metadata,
-  } as Omit<PublicTableInsert<"memory_sources">, "user_id" | "memory_item_id">;
+  };
 }
 
-export function prepareMemoryCandidate(input: MemoryCandidateServiceInput): RepositoryResult<PreparedMemoryCandidate> {
+export function prepareMemoryCandidate(
+  input: MemoryCandidateServiceInput,
+  options: Pick<MemoryCandidateServiceOptions, "now"> = {},
+): RepositoryResult<PreparedMemoryCandidate> {
   const validation = validateMemoryCandidate(validationContext(input.context), input.candidate);
 
   if (!validation.ok) {
@@ -86,7 +96,7 @@ export function prepareMemoryCandidate(input: MemoryCandidateServiceInput): Repo
 
   return repositoryOk({
     candidate: validation.data,
-    memoryItem: toMemoryItemInsert(validation.data),
+    memoryItem: toMemoryItemInsert(validation.data, (options.now ?? defaultNow)()),
     sources: validation.data.sources.map((source) => toSourceInsert(source)),
     warnings: validation.warnings,
   });
@@ -96,7 +106,7 @@ export async function saveMemoryCandidate(
   input: MemoryCandidateServiceInput,
   options: MemoryCandidateServiceOptions = {},
 ): Promise<RepositoryResult<PersistedMemoryCandidate>> {
-  const prepared = prepareMemoryCandidate(input);
+  const prepared = prepareMemoryCandidate(input, { now: options.now });
 
   if (!prepared.ok) {
     return prepared;
