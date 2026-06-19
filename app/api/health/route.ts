@@ -23,6 +23,7 @@ export function GET() {
     mutationSafetyOrchestrationImplemented: true,
     idempotencyRpcStrategyImplemented: true,
     mutationSafetyRpcIntegrationImplemented: true,
+    memoryCandidateTransactionRpcImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
