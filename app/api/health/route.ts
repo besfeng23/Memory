@@ -27,6 +27,7 @@ export function GET() {
     candidateReadbackContractImplemented: true,
     routeContractFoundationImplemented: true,
     disabledMemoryIngestRouteImplemented: true,
+    disabledMemoryIngestAuthGuardImplemented: true,
     liveMemoryIngestImplemented: false,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
