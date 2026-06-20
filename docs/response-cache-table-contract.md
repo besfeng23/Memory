@@ -8,6 +8,12 @@ The table is defined in:
 supabase/migrations/20260620000600_memory_ingest_response_cache_contract.sql
 ```
 
+The typed internal contract is defined in:
+
+```text
+lib/db/response-cache-contract.ts
+```
+
 ## Purpose
 
 The future table is intended to support safe idempotent replay after live ingest exists.
@@ -34,6 +40,16 @@ The unique key is:
 (user_id, namespace, idempotency_key)
 ```
 
+## Internal Repository Contract
+
+The repository contract names the future table and defines typed inputs for:
+
+- lookup by row id
+- lookup by idempotency key
+- creating a row
+
+This is type-only at this stage. It does not create a Supabase client, issue database calls, or connect to any route.
+
 ## Disabled-State Guarantees
 
 This step does not add:
@@ -52,4 +68,4 @@ RLS is enabled on the table, and no permissive access policy is added in this st
 
 ## Next Step
 
-Add a typed internal repository contract for this table without wiring it into the public route.
+Add an internal implementation behind the typed contract without wiring it into the public route.
