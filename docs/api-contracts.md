@@ -5,10 +5,11 @@ This document lists the planned Pandora Memory Engine API surface and the curren
 ## Status Legend
 
 - **Implemented:** Route exists in the codebase and performs real behavior.
+- **Disabled Stub:** Route exists but returns `501 Not Implemented` and performs no live workflow.
 - **Stubbed:** Route exists but only returns placeholder behavior or does not perform the full contract.
 - **Planned:** Route does not exist yet.
 
-At this stage, `GET /api/health`, `GET /api/session`, and foundation Supabase Auth routes are implemented. All memory, AU, real-life, OpenAI, GPT Actions, and MCP routes are planned and must not be treated as live.
+At this stage, `GET /api/health`, `GET /api/session`, foundation Supabase Auth routes, and a disabled `/api/memory/ingest` harness are present. Memory ingest is not live. AU, real-life, OpenAI, GPT Actions, and MCP routes are planned and must not be treated as live.
 
 ## Foundation and Auth Routes
 
@@ -30,7 +31,7 @@ At this stage, `GET /api/health`, `GET /api/session`, and foundation Supabase Au
 
 | Status | Method | Route | Purpose |
 |---|---|---|---|
-| Planned | `POST` | `/api/memory/ingest` | Ingest raw text, files, or structured input into the memory pipeline. |
+| Disabled Stub | `POST` | `/api/memory/ingest` | Returns `501 Not Implemented`. It does not run ingest, call models, retrieve context, or save records. |
 | Planned | `POST` | `/api/memory/search` | Search memory using keyword, semantic, or hybrid retrieval. |
 | Planned | `POST` | `/api/memory/extract` | Extract durable memory candidates from conversation or content. |
 | Planned | `POST` | `/api/memory/validate` | Validate memory deltas before patching. |
@@ -40,7 +41,7 @@ At this stage, `GET /api/health`, `GET /api/session`, and foundation Supabase Au
 
 ## Future Memory Ingest Response Contract
 
-`POST /api/memory/ingest` remains planned and must not be created until route-level auth, validation, transaction behavior, and audit behavior are ready.
+`POST /api/memory/ingest` currently exists only as a disabled 501 harness. It must not become live until route-level auth, validation, transaction behavior, and audit behavior are ready.
 
 When it is later implemented, its response must use this shape:
 
@@ -107,31 +108,3 @@ Duplicate idempotent submissions should return a non-success conflict response u
 | Planned | `POST` | `/api/ai/retrieve-context` | Retrieve namespace-safe memory context. |
 | Planned | `POST` | `/api/ai/extract-memory-deltas` | Extract structured durable memory deltas. |
 | Planned | `POST` | `/api/ai/summarize-memory` | Summarize memory items, timelines, scenes, or relationships. |
-
-## GPT Actions Routes
-
-| Status | Method | Route | Purpose |
-|---|---|---|---|
-| Planned | `GET` | `/api/actions/openapi.json` | OpenAPI schema for Custom GPT Actions. |
-| Planned | `POST` | `/api/actions/searchMemory` | Search memory from a GPT Action. |
-| Planned | `POST` | `/api/actions/addMemory` | Add append-only memory patch from a GPT Action. |
-| Planned | `POST` | `/api/actions/getAUContext` | Retrieve AU context pack. |
-| Planned | `POST` | `/api/actions/saveSceneAftermath` | Save AU scene aftermath. |
-| Planned | `POST` | `/api/actions/checkCanon` | Check canon conflicts. |
-| Planned | `POST` | `/api/actions/getRelationshipTimeline` | Retrieve relationship timeline. |
-
-## MCP Tools
-
-The MCP server is planned and not implemented. MCP tools must call the same service layer as REST APIs once implemented and must never bypass namespace isolation, validation, append-only patching, retrieval logging, or audit logging.
-
-| Status | Tool | Purpose |
-|---|---|---|
-| Planned | `search_memory` | Search namespace-isolated memory. |
-| Planned | `add_memory_patch` | Add a validated append-only memory patch. |
-| Planned | `get_au_context` | Retrieve an AU context pack. |
-| Planned | `save_scene_aftermath` | Save AU scene aftermath. |
-| Planned | `check_canon` | Check proposed AU content against canon. |
-| Planned | `get_relationship_state` | Retrieve relationship derived state. |
-| Planned | `get_recent_scenes` | Retrieve recent AU scenes. |
-| Planned | `get_unresolved_threads` | Retrieve unresolved AU threads. |
-| Planned | `get_real_life_evidence` | Retrieve real-life evidence only from the real-life namespace. |
