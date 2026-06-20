@@ -64,6 +64,12 @@ describe("disabled ingest route", () => {
     expect(body.status).toBe("disabled_stub");
     expect(body.authenticated).toBe(true);
     expect(body.namespace).toBe("real_life");
-    expect(body.idempotency_key_present).toBe(true);
+    expect(body.idempotency).toEqual({
+      key_present: true,
+      key_stored: false,
+      claim_attempted: false,
+      conflict_evaluated: false,
+      conflict_status: "not_evaluated",
+    });
   });
 });
