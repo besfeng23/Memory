@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { RepositoryContext } from "@/lib/db/repository-context";
 import { repositoryError, repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
-import { pandoraNamespaceSchema } from "@/lib/memory/validation/contracts";
+import { memoryNamespaceSchema } from "@/lib/validation/schemas";
 
 export const routeRuntimeStatusSchema = z.enum(["planned", "contract_only", "implemented"]);
 export type RouteRuntimeStatus = z.infer<typeof routeRuntimeStatusSchema>;
@@ -10,7 +10,7 @@ export const routeMethodSchema = z.enum(["GET", "POST", "PATCH", "DELETE"]);
 export type RouteMethod = z.infer<typeof routeMethodSchema>;
 
 export const futureMemoryIngestRequestSchema = z.object({
-  namespace: pandoraNamespaceSchema,
+  namespace: memoryNamespaceSchema,
   input: z.string().min(1),
   source_ref: z.string().min(1).optional().nullable(),
   idempotency_key: z.string().min(8).optional().nullable(),
@@ -21,7 +21,7 @@ export type FutureMemoryIngestRequest = z.infer<typeof futureMemoryIngestRequest
 
 export const futureMemoryIngestResponseSchema = z.object({
   ok: z.literal(true),
-  namespace: pandoraNamespaceSchema,
+  namespace: memoryNamespaceSchema,
   memoryItem: z.object({
     id: z.string().uuid(),
     memory_type: z.string().min(1),
