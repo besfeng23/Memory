@@ -18,6 +18,7 @@ export const SAFE_CORE_REPOSITORY_TABLES = [
   "prompt_logs",
   "audit_logs",
   "idempotency_records",
+  "memory_ingest_response_cache",
 ] as const satisfies readonly PublicTableName[];
 
 export type SafeCoreRepositoryTable = (typeof SAFE_CORE_REPOSITORY_TABLES)[number];
@@ -198,4 +199,8 @@ export function createAuditLogsRepository(options?: ServerCoreRepositoryOptions)
 
 export function createIdempotencyRecordsRepository(options?: ServerCoreRepositoryOptions) {
   return createServerCoreRepository("idempotency_records", options);
+}
+
+export function createMemoryIngestResponseCacheRepository(options?: ServerCoreRepositoryOptions) {
+  return createServerCoreRepository("memory_ingest_response_cache", options);
 }
