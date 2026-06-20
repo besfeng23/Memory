@@ -1,6 +1,6 @@
 import type { MemoryIngestResponseCacheRow, PublicTableInsert } from "@/lib/supabase/database.types";
 import type { RepositoryContext } from "@/lib/db/repository-context";
-import type { RepositoryResult } from "@/lib/db/repository-result";
+import { repositoryError, type RepositoryResult } from "@/lib/db/repository-result";
 
 export const MEMORY_INGEST_RESPONSE_CACHE_TABLE = "memory_ingest_response_cache" as const;
 
@@ -26,3 +26,24 @@ export type ResponseCacheRepositoryContract = {
   getByKey(input: ResponseCacheLookupInput): Promise<RepositoryResult<MemoryIngestResponseCacheRow>>;
   create(input: ResponseCacheCreateInput): Promise<RepositoryResult<MemoryIngestResponseCacheRow>>;
 };
+
+function disabledResult(operation: string): RepositoryResult<MemoryIngestResponseCacheRow> {
+  return repositoryError("validation_failed", "Response cache repository is disabled.", {
+    operation,
+    tableName: MEMORY_INGEST_RESPONSE_CACHE_TABLE,
+  });
+}
+
+export function createDisabledResponseCacheRepository(): ResponseCacheRepositoryContract {
+  return {
+    async getById() {
+      return disabledResult("getById");
+    },
+    async getByKey() {
+      return disabledResult("getByKey");
+    },
+    async create() {
+      return disabledResult("create");
+    },
+  };
+}
