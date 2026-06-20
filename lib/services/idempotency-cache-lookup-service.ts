@@ -95,7 +95,7 @@ export async function lookupIdempotencyCache(
 }
 
 export function cacheLookupConflictError(result: IdempotencyCacheLookupConflict): RepositoryResult<never> {
-  return repositoryError("conflict", "Idempotency key was already used for a different request.", {
+  return repositoryError("idempotency_conflict", "Idempotency key was already used for a different request.", {
     cachedRequestHash: result.cached.request_hash,
     requestHash: result.requestHash,
   });
