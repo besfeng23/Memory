@@ -28,6 +28,7 @@ export function GET() {
     routeContractFoundationImplemented: true,
     disabledMemoryIngestRouteImplemented: true,
     disabledMemoryIngestAuthGuardImplemented: true,
+    disabledMemoryIngestValidationImplemented: true,
     liveMemoryIngestImplemented: false,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
