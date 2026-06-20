@@ -8,7 +8,7 @@ The table is defined in:
 supabase/migrations/20260620000600_memory_ingest_response_cache_contract.sql
 ```
 
-The typed internal contract is defined in:
+The typed internal contract and disabled implementation are defined in:
 
 ```text
 lib/db/response-cache-contract.ts
@@ -48,7 +48,7 @@ The repository contract names the future table and defines typed inputs for:
 - lookup by idempotency key
 - creating a row
 
-This is type-only at this stage. It does not create a Supabase client, issue database calls, or connect to any route.
+The disabled implementation satisfies the contract, but every method returns a disabled repository error. It does not create a Supabase client, issue database calls, or connect to any route.
 
 ## Disabled-State Guarantees
 
@@ -68,4 +68,4 @@ RLS is enabled on the table, and no permissive access policy is added in this st
 
 ## Next Step
 
-Add an internal implementation behind the typed contract without wiring it into the public route.
+Add a real internal implementation behind a separate flag or strategy, still without wiring it into the public route.
