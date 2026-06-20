@@ -3,8 +3,13 @@ import type { RepositoryContext } from "@/lib/db/repository-context";
 import { buildIdempotencyContext } from "@/lib/services/idempotency";
 import type { IdempotencyRpcClient, IdempotencyRpcError } from "@/lib/services/idempotency-rpc";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json } from "@/lib/supabase/database.types";
-import { prepareMemoryCandidate, type MemoryCandidateServiceInput } from "@/lib/memory/services/candidate-service";
+import type { Json, MemoryItemRow, MemorySourceRow } from "@/lib/supabase/database.types";
+import {
+  prepareMemoryCandidate,
+  type MemoryCandidateServiceInput,
+  type PreparedMemoryCandidate,
+  type PersistedMemoryCandidate,
+} from "@/lib/memory/services/candidate-service";
 
 export type MemoryCandidateTransactionSafety = {
   clientKey?: string | null;
@@ -19,9 +24,7 @@ export type MemoryCandidateTransactionInput = MemoryCandidateServiceInput & {
   safety: MemoryCandidateTransactionSafety;
 };
 
-export type MemoryCandidateTransactionResult = {
-  memoryItemId: string;
-  sourceIds: string[];
+export type MemoryCandidateTransactionResult = PersistedMemoryCandidate & {
   idempotencyRecordId: string;
 };
 
@@ -35,9 +38,20 @@ type CandidateTransactionRpcRow = {
 
 type CandidateTransactionRpcArgs = Record<string, unknown>;
 
+type CandidateTransactionCall = {
+  args: CandidateTransactionRpcArgs;
+  prepared: PreparedMemoryCandidate;
+  timestamp: string;
+};
+
 export type CandidateTransactionOptions = {
   createClient?: () => Promise<IdempotencyRpcClient>;
+  now?: () => string;
 };
+
+function defaultNow() {
+  return new Date().toISOString();
+}
 
 function toJson(value: unknown): Json {
   return value as Json;
@@ -82,7 +96,7 @@ async function createDefaultClient(): Promise<IdempotencyRpcClient> {
   return (await createSupabaseServerClient()) as unknown as IdempotencyRpcClient;
 }
 
-function buildSources(input: ReturnType<typeof prepareMemoryCandidate> extends RepositoryResult<infer T> ? T : never) {
+function buildSources(input: PreparedMemoryCandidate) {
   return input.sources.map((source) => ({
     source_type: source.source_type,
     source_ref: source.source_ref,
@@ -92,11 +106,13 @@ function buildSources(input: ReturnType<typeof prepareMemoryCandidate> extends R
   }));
 }
 
-function buildRpcArgs(
+function buildRpcCall(
   context: RepositoryContext,
   input: MemoryCandidateTransactionInput,
-): RepositoryResult<CandidateTransactionRpcArgs> {
-  const prepared = prepareMemoryCandidate(input);
+  options: Pick<CandidateTransactionOptions, "now"> = {},
+): RepositoryResult<CandidateTransactionCall> {
+  const timestamp = (options.now ?? defaultNow)();
+  const prepared = prepareMemoryCandidate(input, { now: () => timestamp });
   if (!prepared.ok) {
     return prepared;
   }
@@ -116,24 +132,82 @@ function buildRpcArgs(
   }
 
   return repositoryOk({
-    p_namespace: context.namespace,
-    p_memory_type: prepared.data.memoryItem.memory_type,
-    p_title: prepared.data.memoryItem.title,
-    p_body: prepared.data.memoryItem.body,
-    p_strength: prepared.data.memoryItem.strength,
-    p_confidence: prepared.data.memoryItem.confidence,
-    p_canon_status: prepared.data.memoryItem.canon_status,
-    p_source_summary: prepared.data.memoryItem.source_summary,
-    p_metadata: toJson(prepared.data.memoryItem.metadata),
-    p_sources: toJson(buildSources(prepared.data)),
-    p_scope: idempotency.data.scope,
-    p_operation: idempotency.data.operation,
-    p_idempotency_key: idempotency.data.key,
-    p_key_source: idempotency.data.keySource,
-    p_fingerprint: idempotency.data.fingerprint,
-    p_request_hash: input.safety.requestHash ?? null,
-    p_response_hash: input.safety.responseHash ?? null,
-    p_expires_at: input.safety.expiresAt ?? null,
+    prepared: prepared.data,
+    timestamp,
+    args: {
+      p_namespace: context.namespace,
+      p_memory_type: prepared.data.memoryItem.memory_type,
+      p_title: prepared.data.memoryItem.title,
+      p_body: prepared.data.memoryItem.body,
+      p_strength: prepared.data.memoryItem.strength,
+      p_confidence: prepared.data.memoryItem.confidence,
+      p_canon_status: prepared.data.memoryItem.canon_status,
+      p_source_summary: prepared.data.memoryItem.source_summary,
+      p_metadata: toJson(prepared.data.memoryItem.metadata),
+      p_sources: toJson(buildSources(prepared.data)),
+      p_scope: idempotency.data.scope,
+      p_operation: idempotency.data.operation,
+      p_idempotency_key: idempotency.data.key,
+      p_key_source: idempotency.data.keySource,
+      p_fingerprint: idempotency.data.fingerprint,
+      p_request_hash: input.safety.requestHash ?? null,
+      p_response_hash: input.safety.responseHash ?? null,
+      p_expires_at: input.safety.expiresAt ?? null,
+    },
+  });
+}
+
+function buildPersistedResult(
+  context: RepositoryContext,
+  call: CandidateTransactionCall,
+  row: CandidateTransactionRpcRow,
+): RepositoryResult<MemoryCandidateTransactionResult> {
+  if (!row.memory_item_id) {
+    return repositoryError("database_error", "Memory candidate transaction did not return a memory item id.");
+  }
+
+  if (row.source_ids.length !== call.prepared.sources.length) {
+    return repositoryError("database_error", "Memory candidate transaction returned unexpected source count.", {
+      expected: call.prepared.sources.length,
+      actual: row.source_ids.length,
+    });
+  }
+
+  const memoryItem: MemoryItemRow = {
+    id: row.memory_item_id,
+    user_id: context.userId,
+    namespace: call.prepared.memoryItem.namespace,
+    memory_type: call.prepared.memoryItem.memory_type,
+    title: call.prepared.memoryItem.title,
+    body: call.prepared.memoryItem.body,
+    strength: call.prepared.memoryItem.strength,
+    confidence: call.prepared.memoryItem.confidence,
+    canon_status: call.prepared.memoryItem.canon_status,
+    source_summary: call.prepared.memoryItem.source_summary,
+    metadata: call.prepared.memoryItem.metadata,
+    is_active: call.prepared.memoryItem.is_active,
+    created_at: call.timestamp,
+    updated_at: call.prepared.memoryItem.updated_at,
+  };
+
+  const sources: MemorySourceRow[] = call.prepared.sources.map((source, index) => ({
+    id: row.source_ids[index],
+    user_id: context.userId,
+    namespace: call.prepared.candidate.namespace,
+    memory_item_id: row.memory_item_id,
+    source_type: source.source_type,
+    source_ref: source.source_ref,
+    excerpt: source.excerpt,
+    confidence: source.confidence,
+    metadata: source.metadata,
+    created_at: call.timestamp,
+  }));
+
+  return repositoryOk({
+    memoryItem,
+    sources,
+    warnings: call.prepared.warnings,
+    idempotencyRecordId: row.idempotency_record_id,
   });
 }
 
@@ -141,13 +215,13 @@ export async function saveMemoryCandidateTransaction(
   input: MemoryCandidateTransactionInput,
   options: CandidateTransactionOptions = {},
 ): Promise<RepositoryResult<MemoryCandidateTransactionResult>> {
-  const args = buildRpcArgs(input.context, input);
-  if (!args.ok) {
-    return args;
+  const call = buildRpcCall(input.context, input, { now: options.now });
+  if (!call.ok) {
+    return call;
   }
 
   const client = await (options.createClient ?? createDefaultClient)();
-  const result = await client.rpc("save_validated_memory_candidate_transaction", args.data);
+  const result = await client.rpc("save_validated_memory_candidate_transaction", call.data.args);
 
   if (result.error) {
     return repositoryError("database_error", result.error.message ?? "Memory candidate transaction failed.", errorDetails(result.error));
@@ -165,13 +239,5 @@ export async function saveMemoryCandidateTransaction(
     });
   }
 
-  if (!row.memory_item_id) {
-    return repositoryError("database_error", "Memory candidate transaction did not return a memory item id.");
-  }
-
-  return repositoryOk({
-    memoryItemId: row.memory_item_id,
-    sourceIds: row.source_ids,
-    idempotencyRecordId: row.idempotency_record_id,
-  });
+  return buildPersistedResult(input.context, call.data, row);
 }
