@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertRouteContractOnly,
   assertRouteDisabled,
+  buildDisabledRouteIdempotencyContract,
   createRouteRepositoryContext,
   futureMemoryIngestRequestSchema,
   futureMemoryIngestResponseSchema,
@@ -36,6 +37,16 @@ describe("route contracts", () => {
     expect(request.input).toBe("Remember this later.");
     expect(request.idempotency_key).toBe("abc-1234");
     expect(request.metadata).toEqual({});
+  });
+
+  it("builds a non-persistent idempotency contract for disabled routes", () => {
+    expect(buildDisabledRouteIdempotencyContract("abc-1234")).toEqual({
+      key_present: true,
+      key_stored: false,
+      claim_attempted: false,
+      conflict_evaluated: false,
+      conflict_status: "not_evaluated",
+    });
   });
 
   it("rejects malformed idempotency keys", () => {
