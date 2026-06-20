@@ -9,11 +9,24 @@ export type RouteRuntimeStatus = z.infer<typeof routeRuntimeStatusSchema>;
 export const routeMethodSchema = z.enum(["GET", "POST", "PATCH", "DELETE"]);
 export type RouteMethod = z.infer<typeof routeMethodSchema>;
 
+export const futureMemoryIngestIdempotencyKeySchema = z
+  .string()
+  .trim()
+  .min(8)
+  .max(128)
+  .regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, dot, underscore, colon, or hyphen.");
+
 export const futureMemoryIngestRequestSchema = z.object({
   namespace: memoryNamespaceSchema,
-  input: z.string().min(1),
-  source_ref: z.string().min(1).optional().nullable(),
-  idempotency_key: z.string().min(8).optional().nullable(),
+  input: z.string().trim().min(1),
+  source_ref: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .nullable()
+    .transform((value) => value ?? null),
+  idempotency_key: futureMemoryIngestIdempotencyKeySchema.optional().nullable().transform((value) => value ?? null),
   metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
