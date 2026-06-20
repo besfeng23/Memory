@@ -1,6 +1,6 @@
 # Memory Candidate Transaction RPC
 
-Pandora Memory Engine now has an internal database-backed transaction path for saving validated memory candidates.
+Pandora Memory Engine has an internal database-backed transaction path for saving validated memory candidates.
 
 This is not a public mutation API.
 
@@ -33,7 +33,7 @@ It performs these steps in one database function call:
 
 ## Internal Service Helper
 
-`saveMemoryCandidateTransaction` prepares an already validated memory candidate request and calls the database function.
+`saveMemoryCandidateTransaction` validates and prepares a memory candidate request, then calls the database function.
 
 It uses:
 
@@ -41,6 +41,20 @@ It uses:
 - user and namespace scoped idempotency fingerprinting
 - typed internal RPC client boundary
 - result guards before returning service data
+- validated input plus returned ids to build the persisted candidate result shape
+
+## Result Shape
+
+The service now returns a shaped persisted candidate result instead of placeholder values.
+
+The returned object contains:
+
+- `memoryItem`
+- `sources`
+- `warnings`
+- `idempotencyRecordId`
+
+`memoryItem` and `sources` are built from the validated service input plus the ids returned by the database function.
 
 ## Why This Matters
 
@@ -55,6 +69,8 @@ The function does not perform OpenAI extraction.
 The function expects the service layer to validate candidates before calling it.
 
 The function is internal and not exposed through a public route.
+
+The service-shaped result is reconstructed from validated input and returned ids; it is not a fresh database readback.
 
 ## What This Does Not Add
 
@@ -72,4 +88,4 @@ This step does not add:
 
 ## Next Step
 
-Prompt 23 should add tests and then connect this transaction RPC path into mutation orchestration as an internal selectable strategy.
+Prompt 25 should add readback or typed row-returning database functions if exact database defaults are needed in the response.
