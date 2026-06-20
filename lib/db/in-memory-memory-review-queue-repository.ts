@@ -1,6 +1,7 @@
 import { repositoryError, repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
 import type { RepositoryContext } from "@/lib/db/repository-context";
 import type { MemoryReviewQueueItem, MemoryReviewStatus } from "@/lib/services/memory-review-queue-contract";
+import { resolveMemoryReviewStatusTransition } from "@/lib/services/memory-review-status-transition";
 import type { AppendReviewDecisionInput, ArchiveReviewItemInput, CreateReviewQueueItemInput, MemoryReviewQueueRepository, ReviewQueueDecisionRecord, ReviewQueueListFilters, ReviewQueueStatusCount } from "@/lib/db/memory-review-queue-repository-contract";
 
 function cloneItem(item: MemoryReviewQueueItem): MemoryReviewQueueItem {
@@ -45,17 +46,23 @@ export class InMemoryMemoryReviewQueueRepository implements MemoryReviewQueueRep
     if (input.client_user_id || input.clientUserId) return repositoryError("validation_failed", "Client-supplied user_id is ignored and rejected for review decisions.");
     const found = await this.readReviewQueueItemById(context, input.itemId);
     if (!found.ok) return found;
-    const decision: ReviewQueueDecisionRecord = { id: `decision-${this.decisions.length + 1}`, itemId: input.itemId, userId: context.userId, namespace: context.namespace, action: input.action, reason: input.reason, createdAt: new Date().toISOString(), audit: { requestId: context.requestId, appendOnly: true } };
+    const transition = resolveMemoryReviewStatusTransition({ currentStatus: found.data.status, action: input.action });
+    if (!transition.ok) return repositoryError("validation_failed", "Invalid review status transition.", { blockers: transition.blockers, from: transition.from, to: transition.to });
+    const now = new Date().toISOString();
+    const decision: ReviewQueueDecisionRecord = { id: `decision-${this.decisions.length + 1}`, itemId: input.itemId, userId: context.userId, namespace: context.namespace, action: input.action, reason: input.reason, createdAt: now, audit: { requestId: context.requestId, appendOnly: true, wouldPersist: false } };
     this.decisions.push(structuredClone(decision));
+    const updated: MemoryReviewQueueItem = { ...found.data, status: transition.to, updatedAt: now, audit: { ...found.data.audit, updatedByUserId: context.userId, decisionTrail: [...found.data.audit.decisionTrail, { action: input.action, at: now, reviewerUserId: context.userId, reason: input.reason }] } };
+    this.items.set(updated.id, cloneItem(updated));
     return repositoryOk(structuredClone(decision));
   }
 
   async archiveReviewItem(context: RepositoryContext, input: ArchiveReviewItemInput): Promise<RepositoryResult<MemoryReviewQueueItem>> {
     const found = await this.readReviewQueueItemById(context, input.itemId);
     if (!found.ok) return found;
-    await this.appendReviewDecision(context, { itemId: input.itemId, action: "archive", reason: input.reason });
-    const updated = { ...found.data, status: "archived" as MemoryReviewStatus, updatedAt: new Date().toISOString() };
-    this.items.set(updated.id, cloneItem(updated));
+    const appended = await this.appendReviewDecision(context, { itemId: input.itemId, action: "archive", reason: input.reason });
+    if (!appended.ok) return appended;
+    const updated = this.items.get(input.itemId);
+    if (!updated) return repositoryError("not_found", "Review queue item was not found in this user namespace.");
     return repositoryOk(cloneItem(updated));
   }
 
