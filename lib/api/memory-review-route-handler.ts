@@ -26,6 +26,7 @@ function ns(v: string | null, d: MemoryNamespace): MemoryNamespace { return v ==
 function limit(v: string | null) { const n = Number(v ?? 50); return Number.isFinite(n) ? Math.max(1, Math.min(n, 100)) : 50; }
 function dtoFromItem(item: MemoryReviewQueueItem) { return { id: item.id, status: item.status, namespace: item.namespace, candidatePreview: item.normalizedText.slice(0, 160), evidenceSummary: item.evidence.hasEvidence ? `${item.evidence.spans.length} evidence span(s)` : "No evidence", sensitivityLevel: item.sensitivity.level, productionWriteDisabled: true, approvalActionsDisabled: true }; }
 export function reviewDecisionDto(input: ReviewQueueDecisionRecord) { return { ...input, wouldPersist: false as const, approvalPersistsMemory: false as const, productionMemoryWritesDisabled: true as const }; }
+async function disabledMutationResponse(request: NextRequest) { await request.json().catch(() => null); return NextResponse.json({ ok: false, ...safety, code: "not_implemented", message: "Review approval, decisions, archive, and memory persistence are disabled on public routes." }, { status: 501 }); }
 async function contextFor(request: NextRequest, deps: MemoryReviewRouteDependencies): Promise<{ response: Response } | { context: RepositoryContext }> {
   if (!deps.repository) return { response: NextResponse.json({ ok: false, ...safety, code: "not_implemented", message: deps.disabledReason ?? "Review repository is not configured." }, { status: 501 }) };
   const url = new URL(request.url); if (hasClientUserId(url)) return { response: NextResponse.json({ ok: false, ...safety, code: "client_user_id_rejected", message: "Client-supplied user_id is rejected." }, { status: 400 }) };
@@ -34,7 +35,7 @@ async function contextFor(request: NextRequest, deps: MemoryReviewRouteDependenc
   return { context: ctx.data };
 }
 async function mutateReviewDecision(request: NextRequest, id: string, deps: MemoryReviewRouteDependencies) {
-  if (!deps.mutationEnabled) return NextResponse.json({ ok: false, ...safety, code: "not_implemented", message: "Review decision mutation is disabled by default. Approval records decisions only and does not persist memory." }, { status: 501 });
+  if (!deps.mutationEnabled) return disabledMutationResponse(request);
   const c = await contextFor(request, deps); if ("response" in c) return c.response;
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
   if (hasClientUserIdBody(body)) return NextResponse.json({ ok: false, ...safety, code: "client_user_id_override_attempt", message: "Client-supplied user_id is rejected." }, { status: 400 });
@@ -55,7 +56,7 @@ export function createMemoryReviewRouteHandler(deps: MemoryReviewRouteDependenci
   return {
     async list(request: NextRequest) { const c = await contextFor(request, deps); if ("response" in c) return c.response; const url = new URL(request.url); const status = url.searchParams.get("status") as MemoryReviewStatus | null; if (url.searchParams.get("counts") === "true") { const result = await deps.repository!.countReviewItemsByStatus(c.context); return NextResponse.json(result.ok ? { ok: true, ...safety, counts: result.data } : { ok: false, ...safety, code: result.error.code, message: result.error.message }, { status: result.ok ? 200 : 500 }); } const result = await deps.repository!.listReviewQueueItems(c.context, { status: status ?? undefined, limit: limit(url.searchParams.get("limit")) }); return NextResponse.json(result.ok ? { ok: true, ...safety, items: result.data.map(dtoFromItem) } : { ok: false, ...safety, code: result.error.code, message: result.error.message, items: [] }, { status: result.ok ? 200 : 500 }); },
     async detail(request: NextRequest, id: string) { const c = await contextFor(request, deps); if ("response" in c) return c.response; const result = await deps.repository!.readReviewQueueItemById(c.context, id); return NextResponse.json(result.ok ? { ok: true, ...safety, item: dtoFromItem(result.data) } : { ok: false, ...safety, code: result.error.code, message: result.error.message, item: null }, { status: result.ok ? 200 : 404 }); },
-    async mutate(request: NextRequest, id?: string) { if (!id) return NextResponse.json({ ok: false, ...safety, code: "missing_review_item_id" }, { status: 400 }); return mutateReviewDecision(request, id, deps); },
+    async mutate(request: NextRequest, id?: string) { if (!deps.mutationEnabled) return disabledMutationResponse(request); if (!id) return NextResponse.json({ ok: false, ...safety, code: "missing_review_item_id" }, { status: 400 }); return mutateReviewDecision(request, id, deps); },
   };
 }
 export function createMemoryReviewItemRouteHandlers(options?: MemoryReviewRouteFactoryOptions) {
