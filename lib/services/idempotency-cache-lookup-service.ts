@@ -1,8 +1,8 @@
-import type { Json } from "@/lib/supabase/database.types";
+import type { Json, MemoryIngestResponseCacheRow } from "@/lib/supabase/database.types";
 import type { RepositoryContext } from "@/lib/db/repository-context";
 import type { RepositoryResult } from "@/lib/db/repository-result";
 import { repositoryError, repositoryOk } from "@/lib/db/repository-result";
-import type { MemoryIngestResponseCacheRow, ResponseCacheRepositoryContract } from "@/lib/db/response-cache-contract";
+import type { ResponseCacheRepositoryContract } from "@/lib/db/response-cache-contract";
 import { createRequestFingerprint, createRequestHash } from "@/lib/api/request-fingerprint";
 
 export type IdempotencyCacheLookupInput = {
