@@ -313,6 +313,9 @@ export async function saveMemoryCandidateWithSafety(
     const result = await saveMemoryCandidateTransaction(input, {
       createClient: options.createClient,
       now: options.now,
+      readBack: options.readBack,
+      memoryItemsRepository: options.memoryItemsRepository,
+      memorySourcesRepository: options.memorySourcesRepository,
     });
 
     if (!result.ok) {
