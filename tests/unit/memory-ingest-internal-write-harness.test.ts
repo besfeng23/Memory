@@ -128,14 +128,17 @@ describe("runMemoryIngestInternalWriteHarness", () => {
 
   it("does not activate the public route, live Supabase clients, model calls, or retrieval", async () => {
     const fs = await import("node:fs/promises");
-    const [routeSource, harnessSource] = await Promise.all([
+    const [routeSource, handlerSource, harnessSource] = await Promise.all([
       fs.readFile("app/api/memory/ingest/route.ts", "utf8"),
+      fs.readFile("lib/api/memory-ingest-route-handler.ts", "utf8"),
       fs.readFile("lib/services/memory-ingest-internal-write-harness.ts", "utf8"),
     ]);
-    expect(routeSource).toContain("assertRouteDisabled");
-    expect(routeSource).toContain("disabled_stub");
-    expect(routeSource).not.toContain("runMemoryIngestInternalWriteHarness");
-    expect(routeSource).not.toContain("executeMemoryIngestPersistencePlan");
+    expect(routeSource).toContain("createMemoryIngestRouteHandler");
+    expect(routeSource).not.toContain("createPersistenceRepository");
+    expect(handlerSource).toContain("assertRouteDisabled");
+    expect(handlerSource).toContain("disabled_stub");
+    expect(handlerSource).toContain("runMemoryIngestInternalWriteHarness");
+    expect(handlerSource).not.toContain("executeMemoryIngestPersistencePlan");
     expect(harnessSource).not.toMatch(/create(Service|Server)?Client|service[-_ ]role|SUPABASE_SERVICE_ROLE/i);
     expect(harnessSource).not.toMatch(/openai|model|retrieval-service/i);
   });

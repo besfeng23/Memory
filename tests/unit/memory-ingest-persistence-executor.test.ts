@@ -143,9 +143,14 @@ describe("persistence executor integration safety", () => {
 
   it("public route remains production-disabled and does not wire the persistence executor", async () => {
     const fs = await import("node:fs/promises");
-    const source = await fs.readFile("app/api/memory/ingest/route.ts", "utf8");
-    expect(source).toContain("assertRouteDisabled");
-    expect(source).toContain("status: \"disabled_stub\"");
-    expect(source).not.toContain("executeMemoryIngestPersistencePlan");
+    const [routeSource, handlerSource] = await Promise.all([
+      fs.readFile("app/api/memory/ingest/route.ts", "utf8"),
+      fs.readFile("lib/api/memory-ingest-route-handler.ts", "utf8"),
+    ]);
+    expect(routeSource).toContain("createMemoryIngestRouteHandler");
+    expect(routeSource).not.toContain("createPersistenceRepository");
+    expect(handlerSource).toContain("assertRouteDisabled");
+    expect(handlerSource).toContain("status: \"disabled_stub\"");
+    expect(handlerSource).not.toContain("executeMemoryIngestPersistencePlan");
   });
 });
