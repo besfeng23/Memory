@@ -1,5 +1,6 @@
 import { repositoryError, repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
 import type { RepositoryContext } from "@/lib/db/repository-context";
+import { createMemoryItemsRepository, createMemorySourcesRepository } from "@/lib/db/core-repositories";
 import { buildIdempotencyContext } from "@/lib/services/idempotency";
 import type { IdempotencyRpcClient, IdempotencyRpcError } from "@/lib/services/idempotency-rpc";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -47,6 +48,9 @@ type CandidateTransactionCall = {
 export type CandidateTransactionOptions = {
   createClient?: () => Promise<IdempotencyRpcClient>;
   now?: () => string;
+  readBack?: boolean;
+  memoryItemsRepository?: ReturnType<typeof createMemoryItemsRepository>;
+  memorySourcesRepository?: ReturnType<typeof createMemorySourcesRepository>;
 };
 
 function defaultNow() {
@@ -157,24 +161,36 @@ function buildRpcCall(
   });
 }
 
+function validateReturnedIds(
+  row: CandidateTransactionRpcRow,
+  prepared: PreparedMemoryCandidate,
+): RepositoryResult<{ memoryItemId: string; sourceIds: string[] }> {
+  if (!row.memory_item_id) {
+    return repositoryError("database_error", "Memory candidate transaction did not return a memory item id.");
+  }
+
+  if (row.source_ids.length !== prepared.sources.length) {
+    return repositoryError("database_error", "Memory candidate transaction returned unexpected source count.", {
+      expected: prepared.sources.length,
+      actual: row.source_ids.length,
+    });
+  }
+
+  return repositoryOk({ memoryItemId: row.memory_item_id, sourceIds: row.source_ids });
+}
+
 function buildPersistedResult(
   context: RepositoryContext,
   call: CandidateTransactionCall,
   row: CandidateTransactionRpcRow,
 ): RepositoryResult<MemoryCandidateTransactionResult> {
-  if (!row.memory_item_id) {
-    return repositoryError("database_error", "Memory candidate transaction did not return a memory item id.");
-  }
-
-  if (row.source_ids.length !== call.prepared.sources.length) {
-    return repositoryError("database_error", "Memory candidate transaction returned unexpected source count.", {
-      expected: call.prepared.sources.length,
-      actual: row.source_ids.length,
-    });
+  const ids = validateReturnedIds(row, call.prepared);
+  if (!ids.ok) {
+    return ids;
   }
 
   const memoryItem: MemoryItemRow = {
-    id: row.memory_item_id,
+    id: ids.data.memoryItemId,
     user_id: context.userId,
     namespace: call.prepared.memoryItem.namespace,
     memory_type: call.prepared.memoryItem.memory_type,
@@ -191,10 +207,10 @@ function buildPersistedResult(
   };
 
   const sources: MemorySourceRow[] = call.prepared.sources.map((source, index) => ({
-    id: row.source_ids[index],
+    id: ids.data.sourceIds[index],
     user_id: context.userId,
     namespace: call.prepared.candidate.namespace,
-    memory_item_id: row.memory_item_id,
+    memory_item_id: ids.data.memoryItemId,
     source_type: source.source_type,
     source_ref: source.source_ref,
     excerpt: source.excerpt,
@@ -205,6 +221,53 @@ function buildPersistedResult(
 
   return repositoryOk({
     memoryItem,
+    sources,
+    warnings: call.prepared.warnings,
+    idempotencyRecordId: row.idempotency_record_id,
+  });
+}
+
+async function readBackPersistedResult(
+  context: RepositoryContext,
+  call: CandidateTransactionCall,
+  row: CandidateTransactionRpcRow,
+  options: CandidateTransactionOptions,
+): Promise<RepositoryResult<MemoryCandidateTransactionResult>> {
+  const ids = validateReturnedIds(row, call.prepared);
+  if (!ids.ok) {
+    return ids;
+  }
+
+  const memoryItemsRepository = options.memoryItemsRepository ?? createMemoryItemsRepository();
+  const memorySourcesRepository = options.memorySourcesRepository ?? createMemorySourcesRepository();
+
+  const memoryItem = await memoryItemsRepository.getById({
+    context,
+    tableName: "memory_items",
+    id: ids.data.memoryItemId,
+  });
+
+  if (!memoryItem.ok) {
+    return memoryItem;
+  }
+
+  const sources: MemorySourceRow[] = [];
+  for (const sourceId of ids.data.sourceIds) {
+    const source = await memorySourcesRepository.getById({
+      context,
+      tableName: "memory_sources",
+      id: sourceId,
+    });
+
+    if (!source.ok) {
+      return source;
+    }
+
+    sources.push(source.data);
+  }
+
+  return repositoryOk({
+    memoryItem: memoryItem.data,
     sources,
     warnings: call.prepared.warnings,
     idempotencyRecordId: row.idempotency_record_id,
@@ -237,6 +300,10 @@ export async function saveMemoryCandidateTransaction(
       idempotencyRecordId: row.idempotency_record_id,
       status: row.existing_status,
     });
+  }
+
+  if (options.readBack) {
+    return readBackPersistedResult(input.context, call.data, row, options);
   }
 
   return buildPersistedResult(input.context, call.data, row);
