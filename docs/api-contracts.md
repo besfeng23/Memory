@@ -38,6 +38,44 @@ At this stage, `GET /api/health`, `GET /api/session`, and foundation Supabase Au
 | Planned | `GET` | `/api/memory/timeline` | Return memory events over time. |
 | Planned | `GET` | `/api/memory/item/:id` | Return one memory item with patches, sources, and audit trail. |
 
+## Future Memory Ingest Response Contract
+
+`POST /api/memory/ingest` remains planned and must not be created until route-level auth, validation, transaction behavior, and audit behavior are ready.
+
+When it is later implemented, its response must use this shape:
+
+```json
+{
+  "ok": true,
+  "namespace": "real_life",
+  "memoryItem": {
+    "id": "uuid",
+    "memory_type": "observation",
+    "title": "string",
+    "body": "string",
+    "strength": "medium",
+    "confidence": 0.8,
+    "canon_status": "draft",
+    "source_summary": null,
+    "metadata": {},
+    "created_at": "timestamp",
+    "updated_at": "timestamp-or-null"
+  },
+  "sources": [],
+  "warnings": [],
+  "idempotency": {
+    "status": "completed",
+    "record_id": "uuid"
+  }
+}
+```
+
+The route must not return raw Supabase errors, tokens, sessions, unfiltered owner ids, or unrelated namespace records.
+
+The route should prefer exact readback rows for client-facing responses when database defaults or triggers matter.
+
+Duplicate idempotent submissions should return a non-success conflict response unless a future replay-safe response cache is explicitly implemented.
+
 ## AU Routes
 
 | Status | Method | Route | Purpose |
