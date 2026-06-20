@@ -26,6 +26,16 @@ export const disabledRouteIdempotencyContractSchema = z.object({
 
 export type DisabledRouteIdempotencyContract = z.infer<typeof disabledRouteIdempotencyContractSchema>;
 
+export const disabledRouteResponseCacheContractSchema = z.object({
+  cache_supported: z.literal(false),
+  cache_lookup_attempted: z.literal(false),
+  cache_write_attempted: z.literal(false),
+  replay_supported: z.literal(false),
+  replay_status: z.literal("not_available"),
+});
+
+export type DisabledRouteResponseCacheContract = z.infer<typeof disabledRouteResponseCacheContractSchema>;
+
 export function buildDisabledRouteIdempotencyContract(
   key: string | null | undefined,
 ): DisabledRouteIdempotencyContract {
@@ -35,6 +45,16 @@ export function buildDisabledRouteIdempotencyContract(
     claim_attempted: false,
     conflict_evaluated: false,
     conflict_status: "not_evaluated",
+  };
+}
+
+export function buildDisabledRouteResponseCacheContract(): DisabledRouteResponseCacheContract {
+  return {
+    cache_supported: false,
+    cache_lookup_attempted: false,
+    cache_write_attempted: false,
+    replay_supported: false,
+    replay_status: "not_available",
   };
 }
 
