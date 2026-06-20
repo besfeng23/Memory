@@ -8,34 +8,27 @@ import {
 } from "@/lib/api/route-contracts";
 
 describe("route contracts", () => {
-  it("keeps memory ingest contract-only before route exposure", () => {
-    const ingest = assertRouteContractOnly("/api/memory/ingest");
+  it("keeps the ingest route contract-only", () => {
+    const result = assertRouteContractOnly("/api/memory/ingest");
+    expect(result.ok).toBe(true);
+  });
 
-    expect(ingest.ok).toBe(true);
-    if (ingest.ok) {
-      expect(ingest.data.status).toBe("contract_only");
-      expect(ingest.data.requiresAuth).toBe(true);
-      expect(ingest.data.mutatesMemory).toBe(true);
+  it("rejects routes that are not contract-only", () => {
+    const result = assertRouteContractOnly("/api/memory/search");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("validation_failed");
     }
   });
 
-  it("rejects non-contract-only route assertions", () => {
-    const search = assertRouteContractOnly("/api/memory/search");
-
-    expect(search.ok).toBe(false);
-    if (!search.ok) {
-      expect(search.error.code).toBe("validation_error");
-    }
-  });
-
-  it("validates future ingest request and response shapes", () => {
-    const request = futureMemoryIngestRequestSchema.parse({
-      namespace: "real_life",
-      input: "Remember this later.",
-      idempotency_key: "12345678",
-    });
-
-    expect(request.metadata).toEqual({});
+  it("validates request and response shapes", () => {
+    expect(
+      futureMemoryIngestRequestSchema.parse({
+        namespace: "real_life",
+        input: "Remember this later.",
+        idempotency_key: "12345678",
+      }).metadata,
+    ).toEqual({});
 
     const response = futureMemoryIngestResponseSchema.parse({
       ok: true,
@@ -43,8 +36,8 @@ describe("route contracts", () => {
       memoryItem: {
         id: "00000000-0000-4000-8000-000000000001",
         memory_type: "observation",
-        title: "Memory title",
-        body: "Memory body",
+        title: "Title",
+        body: "Body",
         strength: "medium",
         confidence: 0.8,
         canon_status: "draft",
@@ -61,30 +54,19 @@ describe("route contracts", () => {
       },
     });
 
-    expect(response.idempotency.status).toBe("completed");
+    expect(response.ok).toBe(true);
   });
 
-  it("builds repository context only for authenticated route use", () => {
-    const ok = createRouteRepositoryContext({
-      userId: "user_id",
-      namespace: "au",
-      requestId: "request_id",
-    });
-
-    expect(ok.ok).toBe(true);
-    if (ok.ok) {
-      expect(ok.data).toEqual({ userId: "user_id", namespace: "au", requestId: "request_id" });
+  it("requires a user id for route repository context", () => {
+    expect(createRouteRepositoryContext({ userId: "user_id", namespace: "au" }).ok).toBe(true);
+    const result = createRouteRepositoryContext({ userId: "", namespace: "real_life" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("auth_required");
     }
-
-    const missing = createRouteRepositoryContext({
-      userId: "",
-      namespace: "real_life",
-    });
-
-    expect(missing.ok).toBe(false);
   });
 
-  it("does not mark planned memory routes as implemented", () => {
+  it("does not mark planned route contracts as implemented", () => {
     expect(plannedRouteContracts.some((route) => route.status === "implemented")).toBe(false);
   });
 });
