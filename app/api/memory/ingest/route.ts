@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       status: "disabled_stub",
       authenticated: true,
       namespace: parsed.data.namespace,
+      idempotency_key_present: Boolean(parsed.data.idempotency_key),
       contract: contract.ok ? contract.data : null,
       message: "Memory ingest is intentionally disabled. This route does not write memory, call models, or touch retrieval state.",
     },

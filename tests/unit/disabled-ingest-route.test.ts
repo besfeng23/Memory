@@ -54,7 +54,7 @@ describe("disabled ingest route", () => {
     getCurrentUserMock.mockResolvedValue({ id: "user_id" });
 
     const response = await POST(
-      makeRequest({ namespace: "real_life", input: "Remember this later.", idempotency_key: "12345678" }),
+      makeRequest({ namespace: "real_life", input: "Remember this later.", idempotency_key: "  key-1234  " }),
     );
     const body = await response.json();
 
@@ -64,5 +64,6 @@ describe("disabled ingest route", () => {
     expect(body.status).toBe("disabled_stub");
     expect(body.authenticated).toBe(true);
     expect(body.namespace).toBe("real_life");
+    expect(body.idempotency_key_present).toBe(true);
   });
 });
