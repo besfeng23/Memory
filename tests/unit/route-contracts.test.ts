@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assertRouteContractOnly,
+  assertRouteDisabled,
   createRouteRepositoryContext,
   futureMemoryIngestRequestSchema,
   futureMemoryIngestResponseSchema,
@@ -8,13 +9,17 @@ import {
 } from "@/lib/api/route-contracts";
 
 describe("route contracts", () => {
-  it("keeps the ingest route contract-only", () => {
-    const result = assertRouteContractOnly("/api/memory/ingest");
+  it("keeps the ingest route disabled", () => {
+    const result = assertRouteDisabled("/api/memory/ingest");
     expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.status).toBe("disabled_stub");
+      expect(result.data.mutatesMemory).toBe(false);
+    }
   });
 
-  it("rejects routes that are not contract-only", () => {
-    const result = assertRouteContractOnly("/api/memory/search");
+  it("rejects disabled routes when contract-only is required", () => {
+    const result = assertRouteContractOnly("/api/memory/ingest");
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("validation_failed");
@@ -22,13 +27,12 @@ describe("route contracts", () => {
   });
 
   it("validates request and response shapes", () => {
-    expect(
-      futureMemoryIngestRequestSchema.parse({
-        namespace: "real_life",
-        input: "Remember this later.",
-        idempotency_key: "12345678",
-      }).metadata,
-    ).toEqual({});
+    const request = futureMemoryIngestRequestSchema.parse({
+      namespace: "real_life",
+      input: "Remember this later.",
+      idempotency_key: "12345678",
+    });
+    expect(request.metadata).toEqual({});
 
     const response = futureMemoryIngestResponseSchema.parse({
       ok: true,
@@ -53,7 +57,6 @@ describe("route contracts", () => {
         record_id: "00000000-0000-4000-8000-000000000002",
       },
     });
-
     expect(response.ok).toBe(true);
   });
 
