@@ -5,6 +5,9 @@ import {
   buildDisabledRouteResponseCacheContract,
   futureMemoryIngestRequestSchema,
 } from "@/lib/api/route-contracts";
+import { runMemoryIngestRouteTestHarness } from "@/lib/api/memory-ingest-route-test-harness";
+import { getMemoryIngestTestModeState } from "@/lib/api/memory-ingest-test-mode";
+import { repositoryError, repositoryOk } from "@/lib/db/repository-result";
 import { getCurrentUser } from "@/lib/security/auth";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +51,51 @@ export async function POST(request: NextRequest) {
         message: "Request validation failed. Memory ingest remains disabled and no state was changed.",
       },
       { status: 400 },
+    );
+  }
+
+  const testMode = getMemoryIngestTestModeState();
+  if (testMode.enabled) {
+    const harnessResult = await runMemoryIngestRouteTestHarness({
+      env: process.env,
+      user,
+      body: parsed.data,
+      responseCacheRepository: { getByKey: async () => repositoryError("not_found", "not found") },
+      runCandidate: async (input) =>
+        repositoryOk({
+          status: "completed",
+          namespace: input.request.namespace,
+          sourceIds: [],
+          warnings: ["test_mode_only"],
+        }),
+    });
+
+    if (!harnessResult.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: harnessResult.error.code,
+          route: "/api/memory/ingest",
+          status: "test_harness_error",
+          authenticated: true,
+          message: harnessResult.error.message,
+          details: harnessResult.error.details ?? null,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        route: "/api/memory/ingest",
+        status: "test_harness_only",
+        authenticated: true,
+        namespace: parsed.data.namespace,
+        result: harnessResult.data.body,
+        message: "Memory ingest test harness completed without production route activation.",
+      },
+      { status: 200 },
     );
   }
 
