@@ -5,13 +5,13 @@ import { runMemoryIngestDryRunCandidate } from "@/lib/services/memory-ingest-dry
 
 const context: RepositoryContext = { userId: "server-auth-user", namespace: "real_life" };
 
-function makeRequest(namespace: FutureMemoryIngestRequest["namespace"]): FutureMemoryIngestRequest {
+function makeRequest(namespace: FutureMemoryIngestRequest["namespace"], metadata: Record<string, unknown> = {}): FutureMemoryIngestRequest {
   return {
     namespace,
     input: "Remember this in dry run only.",
     source_ref: null,
     idempotency_key: "dry-run-key-1234",
-    metadata: { user_id: "client-supplied-user-must-not-be-trusted" },
+    metadata,
   };
 }
 
@@ -44,13 +44,21 @@ describe("runMemoryIngestDryRunCandidate", () => {
         wouldCallModel: false,
         wouldUseClientUserId: false,
       },
+      writePlan: {
+        status: "planned",
+        appendOnly: true,
+        wouldPersist: false,
+        wouldCallModel: false,
+        wouldPerformRetrieval: false,
+        blockers: [],
+      },
     });
   });
 
   it("keeps AU/story namespace handling explicit and not real-life evidence", async () => {
     const result = await runMemoryIngestDryRunCandidate({
       context: { ...context, namespace: "au" },
-      request: makeRequest("au"),
+      request: makeRequest("au", { user_id: "client-supplied-user-must-not-be-trusted" }),
       requestHash: "hash",
       fingerprint: "fingerprint",
     });

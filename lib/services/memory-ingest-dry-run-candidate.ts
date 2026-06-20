@@ -1,5 +1,6 @@
 import { repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
 import { runMemoryIngestPersistencePreflight, type MemoryIngestPersistencePreflightResult } from "@/lib/services/memory-ingest-persistence-preflight";
+import { buildMemoryIngestWritePlan, type MemoryIngestWritePlan } from "@/lib/services/memory-ingest-write-plan-builder";
 import type { GuardedIngestCandidateInput, GuardedIngestCandidateResult } from "@/lib/services/guarded-ingest-service";
 
 export type MemoryIngestDryRunSummary = {
@@ -12,6 +13,7 @@ export type MemoryIngestDryRunSummary = {
   userIdSource: "server_auth_context";
   appendOnlyFutureWrites: true;
   persistencePreflight: MemoryIngestPersistencePreflightResult;
+  writePlan?: Pick<MemoryIngestWritePlan, "status" | "appendOnly" | "wouldPersist" | "wouldCallModel" | "wouldPerformRetrieval" | "plannedOperations" | "blockers">;
 };
 
 export type MemoryIngestDryRunCandidateResult = GuardedIngestCandidateResult & {
@@ -33,6 +35,18 @@ export async function runMemoryIngestDryRunCandidate(
 
   if (!preflight.ok) return preflight;
 
+  const writePlan =
+    preflight.data.status === "ready"
+      ? buildMemoryIngestWritePlan({
+          context: input.context,
+          request: input.request,
+          preflight: preflight.data,
+          requestHash: input.requestHash,
+          fingerprint: input.fingerprint,
+          dryRunMetadata: { mode: "dry_run_only" },
+        })
+      : null;
+
   return repositoryOk({
     status: "completed",
     namespace: input.request.namespace,
@@ -48,6 +62,19 @@ export async function runMemoryIngestDryRunCandidate(
       userIdSource: "server_auth_context",
       appendOnlyFutureWrites: true,
       persistencePreflight: preflight.data,
+      ...(writePlan?.ok
+        ? {
+            writePlan: {
+              status: writePlan.data.status,
+              appendOnly: writePlan.data.appendOnly,
+              wouldPersist: writePlan.data.wouldPersist,
+              wouldCallModel: writePlan.data.wouldCallModel,
+              wouldPerformRetrieval: writePlan.data.wouldPerformRetrieval,
+              plannedOperations: writePlan.data.plannedOperations,
+              blockers: writePlan.data.blockers,
+            },
+          }
+        : {}),
     },
   });
 }
