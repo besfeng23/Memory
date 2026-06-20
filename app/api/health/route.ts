@@ -26,6 +26,8 @@ export function GET() {
     memoryCandidateTransactionRpcImplemented: true,
     candidateReadbackContractImplemented: true,
     routeContractFoundationImplemented: true,
+    disabledMemoryIngestRouteImplemented: true,
+    liveMemoryIngestImplemented: false,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
