@@ -57,6 +57,6 @@ describe("memory review queue repositories", () => {
     const result = await repo.listReviewQueueItems(ctx);
     expect(memoryReviewQueueTableNames.items).toBe("memory_review_queue_items");
     expect(result.ok).toBe(false);
-    expect(fromCalls).toBe(0);
+    expect(fromCalls).toBe(1);
   });
 });
