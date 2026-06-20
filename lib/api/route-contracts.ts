@@ -16,6 +16,28 @@ export const futureMemoryIngestIdempotencyKeySchema = z
   .max(128)
   .regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, dot, underscore, colon, or hyphen.");
 
+export const disabledRouteIdempotencyContractSchema = z.object({
+  key_present: z.boolean(),
+  key_stored: z.literal(false),
+  claim_attempted: z.literal(false),
+  conflict_evaluated: z.literal(false),
+  conflict_status: z.literal("not_evaluated"),
+});
+
+export type DisabledRouteIdempotencyContract = z.infer<typeof disabledRouteIdempotencyContractSchema>;
+
+export function buildDisabledRouteIdempotencyContract(
+  key: string | null | undefined,
+): DisabledRouteIdempotencyContract {
+  return {
+    key_present: Boolean(key),
+    key_stored: false,
+    claim_attempted: false,
+    conflict_evaluated: false,
+    conflict_status: "not_evaluated",
+  };
+}
+
 export const futureMemoryIngestRequestSchema = z.object({
   namespace: memoryNamespaceSchema,
   input: z.string().trim().min(1),
