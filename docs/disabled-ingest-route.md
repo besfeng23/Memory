@@ -18,6 +18,8 @@ Idempotency keys are trimmed and must be 8 to 128 characters using only letters,
 
 The route returns a disabled idempotency contract that says whether a key was present, but it does not persist, claim, compare, or evaluate conflicts for that key.
 
+The route also returns a disabled response-cache contract. It does not look up cached responses, write cached responses, or replay prior responses.
+
 It does not create memory items, save sources, run extraction, call external models, run retrieval, or expose a live workflow.
 
 ## Responses
@@ -62,6 +64,13 @@ Authenticated, valid, but disabled:
     "claim_attempted": false,
     "conflict_evaluated": false,
     "conflict_status": "not_evaluated"
+  },
+  "response_cache": {
+    "cache_supported": false,
+    "cache_lookup_attempted": false,
+    "cache_write_attempted": false,
+    "replay_supported": false,
+    "replay_status": "not_available"
   }
 }
 ```
@@ -78,6 +87,7 @@ This step does not add:
 
 - live memory ingest
 - public mutation behavior
+- response caching
 - OpenAI calls
 - pgvector retrieval
 - GPT Actions
@@ -87,4 +97,4 @@ This step does not add:
 
 ## Next Step
 
-The next step should add future idempotency response caching contracts while still keeping the route disabled.
+The next step should add future response-cache storage table contracts while still keeping the route disabled.
