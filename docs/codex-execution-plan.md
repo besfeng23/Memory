@@ -642,6 +642,16 @@ Acceptance criteria:
 
 ---
 
+
+## Prompt 61 Update — Review Queue Storage/API/UI Foundation
+
+- Review queue contract is complete as a no-write service boundary.
+- Review storage/API/UI foundation has been added with a safe migration draft, repository contract, test-only in-memory repository, Supabase skeleton, disabled/read-only API stubs, and a review inbox UI shell.
+- Production approvals and memory persistence remain disabled; `/api/memory/ingest` remains production-disabled.
+- Next step: RLS-safe Supabase review repository implementation and authenticated read-only review list.
+
+---
+
 ## Codex Prompt Format
 
 Every Codex task should use this structure:
