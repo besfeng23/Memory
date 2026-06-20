@@ -34,6 +34,7 @@ export function GET() {
     disabledMemoryIngestResponseCacheContractImplemented: true,
     responseCacheTableContractMigrationImplemented: true,
     responseCacheRepositoryContractImplemented: true,
+    disabledResponseCacheRepositoryImplemented: true,
     liveMemoryIngestImplemented: false,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
