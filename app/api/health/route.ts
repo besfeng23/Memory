@@ -30,6 +30,7 @@ export function GET() {
     disabledMemoryIngestAuthGuardImplemented: true,
     disabledMemoryIngestValidationImplemented: true,
     disabledMemoryIngestIdempotencyValidationImplemented: true,
+    disabledMemoryIngestIdempotencyConflictContractImplemented: true,
     liveMemoryIngestImplemented: false,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
