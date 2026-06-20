@@ -4,7 +4,8 @@ import { createRouteRepositoryContext } from "@/lib/api/route-repository-context
 import { MEMORY_INGEST_ROUTE_FEATURE_FLAG } from "@/lib/api/memory-ingest-feature-flag";
 import { isMemoryIngestTestModeEnabled } from "@/lib/api/memory-ingest-test-mode";
 import { runGuardedIngest } from "@/lib/services/guarded-ingest-service";
-import { repositoryError, repositoryOk } from "@/lib/db/repository-result";
+import { runMemoryIngestDryRunCandidate } from "@/lib/services/memory-ingest-dry-run-candidate";
+import { repositoryError } from "@/lib/db/repository-result";
 
 const request: FutureMemoryIngestRequest = {
   namespace: "real_life",
@@ -45,20 +46,16 @@ describe("memory ingest test-only flow", () => {
       route: "/api/memory/ingest",
       request,
       responseCacheRepository: { getByKey: async () => repositoryError("not_found", "not found") },
-      runCandidate: async (input) =>
-        repositoryOk({
-          status: "completed",
-          namespace: input.request.namespace,
-          memoryItemId: "memory-test-1",
-          sourceIds: [],
-          warnings: [],
-        }),
+      runCandidate: runMemoryIngestDryRunCandidate,
     });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.status).toBe("completed");
       expect(result.data.namespace).toBe("real_life");
+      expect(result.data.warnings).toContain("dry_run_only");
+      expect(result.data.dryRun?.wouldPersist).toBe(false);
+      expect(result.data.dryRun?.wouldCallModel).toBe(false);
     }
   });
 });

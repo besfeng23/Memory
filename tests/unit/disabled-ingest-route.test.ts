@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const { getCurrentUserMock } = vi.hoisted(() => ({
@@ -20,8 +20,21 @@ function makeRequest(body: unknown) {
 }
 
 describe("disabled ingest route", () => {
+  const originalFlag = process.env.PANDORA_ENABLE_MEMORY_INGEST_ROUTE;
+  const originalNodeEnv = process.env.NODE_ENV;
+
   beforeEach(() => {
     getCurrentUserMock.mockReset();
+    delete process.env.PANDORA_ENABLE_MEMORY_INGEST_ROUTE;
+  });
+
+  afterEach(() => {
+    if (originalFlag === undefined) {
+      delete process.env.PANDORA_ENABLE_MEMORY_INGEST_ROUTE;
+    } else {
+      process.env.PANDORA_ENABLE_MEMORY_INGEST_ROUTE = originalFlag;
+    }
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   it("returns 401 before parsing without a user", async () => {
@@ -48,6 +61,49 @@ describe("disabled ingest route", () => {
     expect(body.status).toBe("disabled_stub");
     expect(body.authenticated).toBe(true);
     expect(body.issues.length).toBeGreaterThan(0);
+  });
+
+  it("still returns production-disabled 501 when the ingest flag is present outside test mode", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "server_user_id" });
+    process.env.PANDORA_ENABLE_MEMORY_INGEST_ROUTE = "true";
+    process.env.NODE_ENV = "production";
+
+    const response = await POST(
+      makeRequest({ namespace: "real_life", input: "Remember this later.", idempotency_key: "key-1234" }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(501);
+    expect(body.status).toBe("disabled_stub");
+    expect(body.response_cache.cache_write_attempted).toBe(false);
+  });
+
+  it("returns a test-harness-only dry-run result in test mode", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "server_user_id" });
+    process.env.PANDORA_ENABLE_MEMORY_INGEST_ROUTE = "true";
+    process.env.NODE_ENV = "test";
+
+    const response = await POST(
+      makeRequest({
+        namespace: "au",
+        input: "Story continuity note only.",
+        idempotency_key: "dry-run-key-1234",
+        metadata: { user_id: "client_user_id_ignored" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("test_harness_only");
+    expect(body.result.warnings).toContain("dry_run_only");
+    expect(body.result.sourceIds).toEqual([]);
+    expect(body.result).not.toHaveProperty("memoryItemId");
+    expect(body.result.dryRun).toMatchObject({
+      wouldPersist: false,
+      wouldCallModel: false,
+      namespacePolicy: "au_explicit_story_only",
+      userIdSource: "server_auth_context",
+    });
   });
 
   it("returns 501 for valid authenticated input without enabling ingest", async () => {

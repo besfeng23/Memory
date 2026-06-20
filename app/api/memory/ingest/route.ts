@@ -7,7 +7,8 @@ import {
 } from "@/lib/api/route-contracts";
 import { runMemoryIngestRouteTestHarness } from "@/lib/api/memory-ingest-route-test-harness";
 import { getMemoryIngestTestModeState } from "@/lib/api/memory-ingest-test-mode";
-import { repositoryError, repositoryOk } from "@/lib/db/repository-result";
+import { repositoryError } from "@/lib/db/repository-result";
+import { runMemoryIngestDryRunCandidate } from "@/lib/services/memory-ingest-dry-run-candidate";
 import { getCurrentUser } from "@/lib/security/auth";
 
 export const dynamic = "force-dynamic";
@@ -61,13 +62,7 @@ export async function POST(request: NextRequest) {
       user,
       body: parsed.data,
       responseCacheRepository: { getByKey: async () => repositoryError("not_found", "not found") },
-      runCandidate: async (input) =>
-        repositoryOk({
-          status: "completed",
-          namespace: input.request.namespace,
-          sourceIds: [],
-          warnings: ["test_mode_only"],
-        }),
+      runCandidate: runMemoryIngestDryRunCandidate,
     });
 
     if (!harnessResult.ok) {
