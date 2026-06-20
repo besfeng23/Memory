@@ -3,6 +3,7 @@ import {
   assertRouteContractOnly,
   assertRouteDisabled,
   buildDisabledRouteIdempotencyContract,
+  buildDisabledRouteResponseCacheContract,
   createRouteRepositoryContext,
   futureMemoryIngestRequestSchema,
   futureMemoryIngestResponseSchema,
@@ -46,6 +47,16 @@ describe("route contracts", () => {
       claim_attempted: false,
       conflict_evaluated: false,
       conflict_status: "not_evaluated",
+    });
+  });
+
+  it("builds a disabled response cache contract", () => {
+    expect(buildDisabledRouteResponseCacheContract()).toEqual({
+      cache_supported: false,
+      cache_lookup_attempted: false,
+      cache_write_attempted: false,
+      replay_supported: false,
+      replay_status: "not_available",
     });
   });
 
