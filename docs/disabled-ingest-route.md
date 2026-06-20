@@ -6,11 +6,13 @@ Pandora has a disabled route harness for future memory ingest work.
 POST /api/memory/ingest
 ```
 
-This route now checks for an authenticated session before returning the disabled response.
+This route checks for an authenticated session, parses the request body, and validates it against the future ingest contract.
 
 If no user is authenticated, it returns `401` with `auth_required`.
 
-If a user is authenticated, it returns `501 Not Implemented`.
+If the request body is invalid, it returns `400` with `validation_failed`.
+
+If the user is authenticated and the request body is valid, it still returns `501 Not Implemented`.
 
 It does not create memory items, save sources, run extraction, call external models, run retrieval, or expose a live workflow.
 
@@ -27,7 +29,20 @@ Unauthenticated:
 }
 ```
 
-Authenticated but disabled:
+Invalid request:
+
+```json
+{
+  "ok": false,
+  "code": "validation_failed",
+  "route": "/api/memory/ingest",
+  "status": "disabled_stub",
+  "authenticated": true,
+  "issues": []
+}
+```
+
+Authenticated, valid, but disabled:
 
 ```json
 {
@@ -35,7 +50,8 @@ Authenticated but disabled:
   "code": "not_implemented",
   "route": "/api/memory/ingest",
   "status": "disabled_stub",
-  "authenticated": true
+  "authenticated": true,
+  "namespace": "real_life"
 }
 ```
 
@@ -60,4 +76,4 @@ This step does not add:
 
 ## Next Step
 
-The next step should continue internal engine assembly or add route-level request parsing while still keeping the route disabled.
+The next step should continue internal engine assembly or add deeper route-level idempotency validation while still keeping the route disabled.
