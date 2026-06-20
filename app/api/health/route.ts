@@ -33,6 +33,7 @@ export function GET() {
     disabledMemoryIngestIdempotencyConflictContractImplemented: true,
     disabledMemoryIngestResponseCacheContractImplemented: true,
     responseCacheTableContractMigrationImplemented: true,
+    responseCacheRepositoryContractImplemented: true,
     liveMemoryIngestImplemented: false,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
