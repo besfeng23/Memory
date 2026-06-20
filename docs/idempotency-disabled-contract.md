@@ -1,8 +1,8 @@
 # Disabled Idempotency Contract
 
-The disabled ingest route returns an idempotency contract without storing or claiming keys.
+The disabled ingest route returns idempotency and response-cache contracts without storing or claiming keys.
 
-The contract shape is:
+The idempotency contract shape is:
 
 ```json
 {
@@ -14,9 +14,24 @@ The contract shape is:
 }
 ```
 
+The response-cache contract shape is:
+
+```json
+{
+  "cache_supported": false,
+  "cache_lookup_attempted": false,
+  "cache_write_attempted": false,
+  "replay_supported": false,
+  "replay_status": "not_available"
+}
+```
+
 This keeps the future response shape explicit while the route remains disabled.
 
 No key is persisted.
 No claim is attempted.
 No conflict check is performed.
+No response cache lookup is attempted.
+No response cache write is attempted.
+No replay is performed.
 No memory state is changed.
