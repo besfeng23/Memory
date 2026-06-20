@@ -3,7 +3,7 @@ import type { RepositoryContext } from "@/lib/db/repository-context";
 import { repositoryError, repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
 import { memoryNamespaceSchema } from "@/lib/validation/schemas";
 
-export const routeRuntimeStatusSchema = z.enum(["planned", "contract_only", "implemented"]);
+export const routeRuntimeStatusSchema = z.enum(["planned", "contract_only", "disabled_stub", "implemented"]);
 export type RouteRuntimeStatus = z.infer<typeof routeRuntimeStatusSchema>;
 
 export const routeMethodSchema = z.enum(["GET", "POST", "PATCH", "DELETE"]);
@@ -58,10 +58,10 @@ export const plannedRouteContracts: PlannedRouteContract[] = [
   {
     method: "POST",
     path: "/api/memory/ingest",
-    status: "contract_only",
+    status: "disabled_stub",
     requiresAuth: true,
-    mutatesMemory: true,
-    description: "Future memory ingest route. Contract exists but no route is exposed yet.",
+    mutatesMemory: false,
+    description: "Disabled 501 route harness.",
   },
   {
     method: "POST",
@@ -69,7 +69,7 @@ export const plannedRouteContracts: PlannedRouteContract[] = [
     status: "planned",
     requiresAuth: true,
     mutatesMemory: false,
-    description: "Future memory search route.",
+    description: "Future search route.",
   },
   {
     method: "POST",
@@ -77,22 +77,34 @@ export const plannedRouteContracts: PlannedRouteContract[] = [
     status: "planned",
     requiresAuth: true,
     mutatesMemory: true,
-    description: "Future append-only memory patch route.",
+    description: "Future patch route.",
   },
 ];
 
-export function assertRouteContractOnly(path: string): RepositoryResult<PlannedRouteContract> {
+function findRouteContract(path: string): RepositoryResult<PlannedRouteContract> {
   const contract = plannedRouteContracts.find((route) => route.path === path);
-
   if (!contract) {
     return repositoryError("not_found", "Route contract was not found.", { path });
   }
-
-  if (contract.status !== "contract_only") {
-    return repositoryError("validation_failed", "Route is not in contract-only state.", { path, status: contract.status });
-  }
-
   return repositoryOk(contract);
+}
+
+export function assertRouteContractOnly(path: string): RepositoryResult<PlannedRouteContract> {
+  const contract = findRouteContract(path);
+  if (!contract.ok) return contract;
+  if (contract.data.status !== "contract_only") {
+    return repositoryError("validation_failed", "Route is not in contract-only state.", { path, status: contract.data.status });
+  }
+  return repositoryOk(contract.data);
+}
+
+export function assertRouteDisabled(path: string): RepositoryResult<PlannedRouteContract> {
+  const contract = findRouteContract(path);
+  if (!contract.ok) return contract;
+  if (contract.data.status !== "disabled_stub") {
+    return repositoryError("validation_failed", "Route is not in disabled state.", { path, status: contract.data.status });
+  }
+  return repositoryOk(contract.data);
 }
 
 export function createRouteRepositoryContext(input: {
