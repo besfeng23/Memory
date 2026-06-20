@@ -1,23 +1,41 @@
 # Disabled Memory Ingest Route
 
-Pandora now has a disabled route harness for future memory ingest work.
+Pandora has a disabled route harness for future memory ingest work.
 
 ```text
 POST /api/memory/ingest
 ```
 
-This route intentionally returns `501 Not Implemented`.
+This route now checks for an authenticated session before returning the disabled response.
 
-It does not create memory items, save sources, run extraction, call external models, run retrieval, or expose a public ingest workflow.
+If no user is authenticated, it returns `401` with `auth_required`.
 
-## Response
+If a user is authenticated, it returns `501 Not Implemented`.
+
+It does not create memory items, save sources, run extraction, call external models, run retrieval, or expose a live workflow.
+
+## Responses
+
+Unauthenticated:
+
+```json
+{
+  "ok": false,
+  "code": "auth_required",
+  "route": "/api/memory/ingest",
+  "status": "disabled_stub"
+}
+```
+
+Authenticated but disabled:
 
 ```json
 {
   "ok": false,
   "code": "not_implemented",
   "route": "/api/memory/ingest",
-  "status": "disabled_stub"
+  "status": "disabled_stub",
+  "authenticated": true
 }
 ```
 
@@ -42,4 +60,4 @@ This step does not add:
 
 ## Next Step
 
-The next step should add route-level authentication checks while still keeping the route disabled, or continue internal engine assembly before enabling any live route behavior.
+The next step should continue internal engine assembly or add route-level request parsing while still keeping the route disabled.
