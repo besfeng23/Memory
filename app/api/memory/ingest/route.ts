@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   assertRouteDisabled,
   buildDisabledRouteIdempotencyContract,
+  buildDisabledRouteResponseCacheContract,
   futureMemoryIngestRequestSchema,
 } from "@/lib/api/route-contracts";
 import { getCurrentUser } from "@/lib/security/auth";
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
 
   const contract = assertRouteDisabled("/api/memory/ingest");
   const idempotency = buildDisabledRouteIdempotencyContract(parsed.data.idempotency_key);
+  const response_cache = buildDisabledRouteResponseCacheContract();
 
   return NextResponse.json(
     {
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
       authenticated: true,
       namespace: parsed.data.namespace,
       idempotency,
+      response_cache,
       contract: contract.ok ? contract.data : null,
       message: "Memory ingest is intentionally disabled. This route does not write memory, call models, or touch retrieval state.",
     },
