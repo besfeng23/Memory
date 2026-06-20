@@ -14,6 +14,10 @@ If the request body is invalid, it returns `400` with `validation_failed`.
 
 If the user is authenticated and the request body is valid, it still returns `501 Not Implemented`.
 
+Idempotency keys are trimmed and must be 8 to 128 characters using only letters, numbers, dot, underscore, colon, or hyphen.
+
+The route reports whether a valid idempotency key was present, but it does not persist or claim that key yet.
+
 It does not create memory items, save sources, run extraction, call external models, run retrieval, or expose a live workflow.
 
 ## Responses
@@ -51,7 +55,8 @@ Authenticated, valid, but disabled:
   "route": "/api/memory/ingest",
   "status": "disabled_stub",
   "authenticated": true,
-  "namespace": "real_life"
+  "namespace": "real_life",
+  "idempotency_key_present": true
 }
 ```
 
@@ -76,4 +81,4 @@ This step does not add:
 
 ## Next Step
 
-The next step should continue internal engine assembly or add deeper route-level idempotency validation while still keeping the route disabled.
+The next step should add idempotency conflict semantics while still keeping the route disabled.
