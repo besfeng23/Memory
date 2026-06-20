@@ -725,3 +725,12 @@ Use 36 Codex tasks as the main V1 execution plan.
 - Use 50-70+ for the polished full system.
 
 The database, RLS, tests, and memory contracts must come first. UI comes after the engine.
+
+
+## Prompt 62 Update — RLS-safe Review Queue Read-only Foundation
+
+- Added active Supabase RLS tables for review queue items and append-only decisions.
+- Added repository/mapper foundations for context-owned read/create review queue access.
+- Added read-only route factory and safe disabled public route wiring.
+- Review UI now targets UI-safe read-only DTOs and disabled backend state.
+- Next step: review decision append RPC and controlled internal mutation path. Still not production memory persistence.
