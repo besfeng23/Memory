@@ -71,5 +71,12 @@ describe("disabled ingest route", () => {
       conflict_evaluated: false,
       conflict_status: "not_evaluated",
     });
+    expect(body.response_cache).toEqual({
+      cache_supported: false,
+      cache_lookup_attempted: false,
+      cache_write_attempted: false,
+      replay_supported: false,
+      replay_status: "not_available",
+    });
   });
 });
