@@ -1,5 +1,6 @@
 import { repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
 import { runMemoryIngestPersistencePreflight, type MemoryIngestPersistencePreflightResult } from "@/lib/services/memory-ingest-persistence-preflight";
+import { executeMemoryIngestWritePlanDryRun, type MemoryIngestWritePlanExecutionReport } from "@/lib/services/memory-ingest-write-plan-executor";
 import { buildMemoryIngestWritePlan, type MemoryIngestWritePlan } from "@/lib/services/memory-ingest-write-plan-builder";
 import type { GuardedIngestCandidateInput, GuardedIngestCandidateResult } from "@/lib/services/guarded-ingest-service";
 
@@ -14,6 +15,19 @@ export type MemoryIngestDryRunSummary = {
   appendOnlyFutureWrites: true;
   persistencePreflight: MemoryIngestPersistencePreflightResult;
   writePlan?: Pick<MemoryIngestWritePlan, "status" | "appendOnly" | "wouldPersist" | "wouldCallModel" | "wouldPerformRetrieval" | "plannedOperations" | "blockers">;
+  executionReport?: Pick<
+    MemoryIngestWritePlanExecutionReport,
+    | "status"
+    | "executedOperations"
+    | "blockedOperations"
+    | "wouldPersist"
+    | "writesPerformed"
+    | "wouldCallModel"
+    | "wouldPerformRetrieval"
+    | "appendOnly"
+    | "usesClientUserId"
+    | "blockers"
+  >;
 };
 
 export type MemoryIngestDryRunCandidateResult = GuardedIngestCandidateResult & {
@@ -47,6 +61,17 @@ export async function runMemoryIngestDryRunCandidate(
         })
       : null;
 
+  const executionReport =
+    writePlan?.ok
+      ? executeMemoryIngestWritePlanDryRun({
+          context: input.context,
+          request: input.request,
+          writePlan: writePlan.data,
+          requestHash: input.requestHash,
+          fingerprint: input.fingerprint,
+        })
+      : null;
+
   return repositoryOk({
     status: "completed",
     namespace: input.request.namespace,
@@ -72,6 +97,22 @@ export async function runMemoryIngestDryRunCandidate(
               wouldPerformRetrieval: writePlan.data.wouldPerformRetrieval,
               plannedOperations: writePlan.data.plannedOperations,
               blockers: writePlan.data.blockers,
+            },
+          }
+        : {}),
+      ...(executionReport?.ok
+        ? {
+            executionReport: {
+              status: executionReport.data.status,
+              executedOperations: executionReport.data.executedOperations,
+              blockedOperations: executionReport.data.blockedOperations,
+              wouldPersist: executionReport.data.wouldPersist,
+              writesPerformed: executionReport.data.writesPerformed,
+              wouldCallModel: executionReport.data.wouldCallModel,
+              wouldPerformRetrieval: executionReport.data.wouldPerformRetrieval,
+              appendOnly: executionReport.data.appendOnly,
+              usesClientUserId: executionReport.data.usesClientUserId,
+              blockers: executionReport.data.blockers,
             },
           }
         : {}),

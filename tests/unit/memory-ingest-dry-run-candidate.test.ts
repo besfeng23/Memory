@@ -52,6 +52,16 @@ describe("runMemoryIngestDryRunCandidate", () => {
         wouldPerformRetrieval: false,
         blockers: [],
       },
+      executionReport: {
+        status: "executed_dry_run",
+        wouldPersist: false,
+        writesPerformed: false,
+        wouldCallModel: false,
+        wouldPerformRetrieval: false,
+        appendOnly: true,
+        usesClientUserId: false,
+        blockers: [],
+      },
     });
   });
 
