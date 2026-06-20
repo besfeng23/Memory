@@ -3,6 +3,7 @@ import type { FutureMemoryIngestRequest } from "@/lib/api/route-contracts";
 import type { RepositoryContext } from "@/lib/db/repository-context";
 import { repositoryError, repositoryOk, type RepositoryResult } from "@/lib/db/repository-result";
 import type { ResponseCacheRepositoryContract } from "@/lib/db/response-cache-contract";
+import type { MemoryIngestPersistencePreflightResult } from "@/lib/services/memory-ingest-persistence-preflight";
 import { createRequestFingerprint, createRequestHash } from "@/lib/api/request-fingerprint";
 import { detectIdempotencyConflict, requireNoIdempotencyConflict } from "@/lib/services/idempotency-conflict-service";
 
@@ -36,6 +37,7 @@ export type GuardedIngestCandidateResult = {
     namespacePolicy?: "real_life_explicit" | "au_explicit_story_only";
     userIdSource?: "server_auth_context";
     appendOnlyFutureWrites?: boolean;
+    persistencePreflight?: MemoryIngestPersistencePreflightResult;
   };
 };
 

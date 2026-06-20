@@ -103,6 +103,16 @@ describe("disabled ingest route", () => {
       wouldCallModel: false,
       namespacePolicy: "au_explicit_story_only",
       userIdSource: "server_auth_context",
+      persistencePreflight: {
+        status: "ready",
+        wouldPersist: false,
+        wouldCallModel: false,
+        wouldUseClientUserId: false,
+        namespaceIsolation: {
+          noCrossNamespacePersistence: true,
+          auContentRemainsFictionalStoryScoped: true,
+        },
+      },
     });
   });
 

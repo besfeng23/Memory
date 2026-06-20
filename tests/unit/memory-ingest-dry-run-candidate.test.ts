@@ -38,6 +38,12 @@ describe("runMemoryIngestDryRunCandidate", () => {
       namespacePolicy: "real_life_explicit",
       userIdSource: "server_auth_context",
       appendOnlyFutureWrites: true,
+      persistencePreflight: {
+        status: "ready",
+        wouldPersist: false,
+        wouldCallModel: false,
+        wouldUseClientUserId: false,
+      },
     });
   });
 
@@ -53,5 +59,6 @@ describe("runMemoryIngestDryRunCandidate", () => {
     if (!result.ok) return;
     expect(result.data.namespace).toBe("au");
     expect(result.data.dryRun.namespacePolicy).toBe("au_explicit_story_only");
+    expect(result.data.dryRun.persistencePreflight.namespaceIsolation.auContentRemainsFictionalStoryScoped).toBe(true);
   });
 });
