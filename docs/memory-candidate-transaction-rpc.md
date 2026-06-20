@@ -45,7 +45,7 @@ It uses:
 
 ## Result Shape
 
-The service now returns a shaped persisted candidate result instead of placeholder values.
+The service returns a shaped persisted candidate result instead of placeholder values.
 
 The returned object contains:
 
@@ -54,7 +54,17 @@ The returned object contains:
 - `warnings`
 - `idempotencyRecordId`
 
-`memoryItem` and `sources` are built from the validated service input plus the ids returned by the database function.
+By default, `memoryItem` and `sources` are built from the validated service input plus the ids returned by the database function.
+
+## Optional Readback
+
+The service supports an internal `readBack` option.
+
+When `readBack` is enabled, the service fetches the saved `memory_items` row and each saved `memory_sources` row through owner and namespace scoped repositories after the database function returns ids.
+
+This is useful when exact database defaults, triggers, timestamps, or stored JSON values are needed in the service response.
+
+`readBack` remains internal-only and still exposes no public mutation route.
 
 ## Why This Matters
 
@@ -70,7 +80,7 @@ The function expects the service layer to validate candidates before calling it.
 
 The function is internal and not exposed through a public route.
 
-The service-shaped result is reconstructed from validated input and returned ids; it is not a fresh database readback.
+Readback performs additional repository reads after the database function returns ids. It is not a public API response contract yet.
 
 ## What This Does Not Add
 
@@ -88,4 +98,4 @@ This step does not add:
 
 ## Next Step
 
-Prompt 25 should add readback or typed row-returning database functions if exact database defaults are needed in the response.
+Prompt 26 should add readback tests and then decide whether public-facing ingest will return shaped service data or exact readback rows once public routes are allowed.
