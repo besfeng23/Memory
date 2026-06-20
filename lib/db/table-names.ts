@@ -8,7 +8,6 @@ export const CORE_TABLE_NAMES = [
   "prompt_logs",
   "audit_logs",
   "idempotency_records",
-  "memory_ingest_response_cache",
 ] as const satisfies readonly PublicTableName[];
 
 export const REAL_LIFE_TABLE_NAMES = [
