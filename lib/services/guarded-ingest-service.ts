@@ -27,6 +27,16 @@ export type GuardedIngestCandidateResult = {
   memoryItemId?: string;
   sourceIds: string[];
   warnings: string[];
+  dryRun?: {
+    wouldClassify: boolean;
+    wouldExtractCandidates: boolean;
+    wouldValidateNamespace: boolean;
+    wouldPersist: boolean;
+    wouldCallModel: boolean;
+    namespacePolicy?: "real_life_explicit" | "au_explicit_story_only";
+    userIdSource?: "server_auth_context";
+    appendOnlyFutureWrites?: boolean;
+  };
 };
 
 export type GuardedIngestCandidateRunner = (
