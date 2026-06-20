@@ -89,7 +89,7 @@ export type AuditLogRow = BaseOwnedRow & {
   table_name: string;
   record_id: Nullable<DbId>;
   before_snapshot: Nullable<Json>;
-  after_snapshot: Nullable<Json>;
+  after_snapshot: Json;
 };
 
 export type IdempotencyRecordRow = BaseOwnedRow & {
@@ -103,6 +103,17 @@ export type IdempotencyRecordRow = BaseOwnedRow & {
   status: "started" | "completed" | "failed";
   expires_at: Nullable<DbTimestamp>;
   updated_at: DbTimestamp;
+};
+
+export type MemoryIngestResponseCacheRow = BaseOwnedRow & {
+  idempotency_key: string;
+  request_hash: string;
+  response_status: number;
+  response_body: Json;
+  warnings: Json;
+  expires_at: DbTimestamp;
+  last_replayed_at: Nullable<DbTimestamp>;
+  replay_count: number;
 };
 
 export type PersonRow = MutableOwnedRow & {
@@ -339,6 +350,7 @@ export type PublicTables = {
   prompt_logs: Table<PromptLogRow>;
   audit_logs: Table<AuditLogRow>;
   idempotency_records: Table<IdempotencyRecordRow>;
+  memory_ingest_response_cache: Table<MemoryIngestResponseCacheRow>;
   people: Table<PersonRow>;
   relationships: Table<RelationshipRow>;
   relationship_events: Table<RelationshipEventRow>;
