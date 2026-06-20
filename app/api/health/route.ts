@@ -24,6 +24,7 @@ export function GET() {
     idempotencyRpcStrategyImplemented: true,
     mutationSafetyRpcIntegrationImplemented: true,
     memoryCandidateTransactionRpcImplemented: true,
+    candidateReadbackContractImplemented: true,
     memoryEngineImplemented: false,
     databaseSchemaImplemented: false,
     openAiIntegrationImplemented: false,
