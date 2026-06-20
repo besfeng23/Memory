@@ -79,4 +79,37 @@ describe("runMemoryIngestDryRunCandidate", () => {
     expect(result.data.dryRun.namespacePolicy).toBe("au_explicit_story_only");
     expect(result.data.dryRun.persistencePreflight.namespaceIsolation.auContentRemainsFictionalStoryScoped).toBe(true);
   });
+  it("includes extraction summary metadata when present", async () => {
+    const result = await runMemoryIngestDryRunCandidate({
+      context,
+      request: makeRequest("real_life", {
+        extractionSummary: {
+          namespaceClassification: "real_life",
+          extractedCandidateCount: 2,
+          validatedCandidateCount: 1,
+          rejectedCandidateCount: 1,
+          sensitiveCandidateCount: 1,
+          requiresReview: true,
+          wouldCallModel: false,
+          wouldPersist: false,
+        },
+      }),
+      requestHash: "hash",
+      fingerprint: "fingerprint",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.dryRun).toMatchObject({
+      namespaceClassification: "real_life",
+      extractedCandidateCount: 2,
+      validatedCandidateCount: 1,
+      rejectedCandidateCount: 1,
+      sensitiveCandidateCount: 1,
+      requiresReview: true,
+      noModelCallConfirmed: true,
+      noPersistenceConfirmed: true,
+    });
+  });
+
 });

@@ -15,6 +15,14 @@ export type MemoryIngestDryRunSummary = {
   appendOnlyFutureWrites: true;
   persistencePreflight: MemoryIngestPersistencePreflightResult;
   writePlan?: Pick<MemoryIngestWritePlan, "status" | "appendOnly" | "wouldPersist" | "wouldCallModel" | "wouldPerformRetrieval" | "plannedOperations" | "blockers">;
+  namespaceClassification?: unknown;
+  extractedCandidateCount?: number;
+  validatedCandidateCount?: number;
+  rejectedCandidateCount?: number;
+  sensitiveCandidateCount?: number;
+  requiresReview?: boolean;
+  noModelCallConfirmed?: true;
+  noPersistenceConfirmed?: true;
   executionReport?: Pick<
     MemoryIngestWritePlanExecutionReport,
     | "status"
@@ -34,10 +42,36 @@ export type MemoryIngestDryRunCandidateResult = GuardedIngestCandidateResult & {
   dryRun: MemoryIngestDryRunSummary;
 };
 
+function getExtractionSummary(metadata: Record<string, unknown>): {
+  namespaceClassification?: unknown;
+  extractedCandidateCount?: number;
+  validatedCandidateCount?: number;
+  rejectedCandidateCount?: number;
+  sensitiveCandidateCount?: number;
+  requiresReview?: boolean;
+  noModelCallConfirmed?: true;
+  noPersistenceConfirmed?: true;
+} {
+  const summary = metadata.extractionSummary;
+  if (!summary || typeof summary !== "object") return {};
+  const value = summary as Record<string, unknown>;
+  return {
+    namespaceClassification: value.namespaceClassification,
+    extractedCandidateCount: typeof value.extractedCandidateCount === "number" ? value.extractedCandidateCount : undefined,
+    validatedCandidateCount: typeof value.validatedCandidateCount === "number" ? value.validatedCandidateCount : undefined,
+    rejectedCandidateCount: typeof value.rejectedCandidateCount === "number" ? value.rejectedCandidateCount : undefined,
+    sensitiveCandidateCount: typeof value.sensitiveCandidateCount === "number" ? value.sensitiveCandidateCount : undefined,
+    requiresReview: typeof value.requiresReview === "boolean" ? value.requiresReview : undefined,
+    noModelCallConfirmed: value.wouldCallModel === false ? true : undefined,
+    noPersistenceConfirmed: value.wouldPersist === false ? true : undefined,
+  };
+}
+
 export async function runMemoryIngestDryRunCandidate(
   input: GuardedIngestCandidateInput,
 ): Promise<RepositoryResult<MemoryIngestDryRunCandidateResult>> {
   const namespacePolicy = input.request.namespace === "real_life" ? "real_life_explicit" : "au_explicit_story_only";
+  const extractionSummary = getExtractionSummary(input.request.metadata);
 
   const preflight = await runMemoryIngestPersistencePreflight({
     context: input.context,
@@ -86,6 +120,7 @@ export async function runMemoryIngestDryRunCandidate(
       namespacePolicy,
       userIdSource: "server_auth_context",
       appendOnlyFutureWrites: true,
+      ...extractionSummary,
       persistencePreflight: preflight.data,
       ...(writePlan?.ok
         ? {
