@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/route-contracts";
 
 describe("route contracts", () => {
-  it("keeps the ingest route disabled", () => {
+  it("keeps the route disabled", () => {
     const result = assertRouteDisabled("/api/memory/ingest");
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -26,14 +26,29 @@ describe("route contracts", () => {
     }
   });
 
-  it("validates request and response shapes", () => {
+  it("normalizes request fields", () => {
     const request = futureMemoryIngestRequestSchema.parse({
       namespace: "real_life",
-      input: "Remember this later.",
-      idempotency_key: "12345678",
+      input: "  Remember this later.  ",
+      idempotency_key: "  abc-1234  ",
     });
-    expect(request.metadata).toEqual({});
 
+    expect(request.input).toBe("Remember this later.");
+    expect(request.idempotency_key).toBe("abc-1234");
+    expect(request.metadata).toEqual({});
+  });
+
+  it("rejects malformed idempotency keys", () => {
+    const request = futureMemoryIngestRequestSchema.safeParse({
+      namespace: "real_life",
+      input: "Remember this later.",
+      idempotency_key: "bad key",
+    });
+
+    expect(request.success).toBe(false);
+  });
+
+  it("validates response shape", () => {
     const response = futureMemoryIngestResponseSchema.parse({
       ok: true,
       namespace: "real_life",
