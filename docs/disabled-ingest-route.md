@@ -16,7 +16,7 @@ If the user is authenticated and the request body is valid, it still returns `50
 
 Idempotency keys are trimmed and must be 8 to 128 characters using only letters, numbers, dot, underscore, colon, or hyphen.
 
-The route reports whether a valid idempotency key was present, but it does not persist or claim that key yet.
+The route returns a disabled idempotency contract that says whether a key was present, but it does not persist, claim, compare, or evaluate conflicts for that key.
 
 It does not create memory items, save sources, run extraction, call external models, run retrieval, or expose a live workflow.
 
@@ -56,7 +56,13 @@ Authenticated, valid, but disabled:
   "status": "disabled_stub",
   "authenticated": true,
   "namespace": "real_life",
-  "idempotency_key_present": true
+  "idempotency": {
+    "key_present": true,
+    "key_stored": false,
+    "claim_attempted": false,
+    "conflict_evaluated": false,
+    "conflict_status": "not_evaluated"
+  }
 }
 ```
 
@@ -81,4 +87,4 @@ This step does not add:
 
 ## Next Step
 
-The next step should add idempotency conflict semantics while still keeping the route disabled.
+The next step should add future idempotency response caching contracts while still keeping the route disabled.
