@@ -38,7 +38,7 @@ export const futureMemoryIngestResponseSchema = z.object({
   sources: z.array(z.record(z.string(), z.unknown())),
   warnings: z.array(z.string()),
   idempotency: z.object({
-    status: z.enum(["completed"]),
+    status: z.literal("completed"),
     record_id: z.string().uuid(),
   }),
 });
@@ -89,7 +89,7 @@ export function assertRouteContractOnly(path: string): RepositoryResult<PlannedR
   }
 
   if (contract.status !== "contract_only") {
-    return repositoryError("validation_error", "Route is not in contract-only state.", { path, status: contract.status });
+    return repositoryError("validation_failed", "Route is not in contract-only state.", { path, status: contract.status });
   }
 
   return repositoryOk(contract);
@@ -101,7 +101,7 @@ export function createRouteRepositoryContext(input: {
   requestId?: string | null;
 }): RepositoryResult<RepositoryContext> {
   if (!input.userId) {
-    return repositoryError("unauthorized", "Authenticated user is required for route context.");
+    return repositoryError("auth_required", "Authenticated user is required for route context.");
   }
 
   return repositoryOk({
