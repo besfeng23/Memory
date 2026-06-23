@@ -748,3 +748,12 @@ The database, RLS, tests, and memory contracts must come first. UI comes after t
 - Added a disabled-by-default public persist route stub; this is still not public production memory persistence.
 - Added in-memory test repository support and a Supabase repository skeleton that does not perform live writes.
 - Next step: implement a transactional Supabase RPC, for example `memory_execute_approved_review_persistence`, behind the explicit internal/admin gate.
+
+## Prompt 66 — Transactional Supabase approved-review persistence RPC
+
+- Approved-review persistence preview is complete.
+- The internal executor boundary is complete.
+- Added transactional Supabase RPC persistence behind the internal/admin gate.
+- Public production persistence remains disabled, and `/api/memory/ingest` remains production-disabled.
+- Next step: authenticated private admin UI or CLI-only persistence execution review.
+- Still no public production persistence, model calls, retrieval, embeddings, pgvector, GPT Actions, or MCP.

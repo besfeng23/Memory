@@ -4,6 +4,8 @@ import { POST as publicPersistPost } from "@/app/api/memory/review/[id]/persist/
 import { createApprovedReviewMemoryPersistenceExecutorRouteHandler } from "@/lib/api/approved-review-memory-persistence-executor-route-handler";
 import { InMemoryApprovedReviewMemoryPersistenceRepository } from "@/lib/db/in-memory-approved-review-memory-persistence-repository";
 import { SupabaseApprovedReviewMemoryPersistenceRepository } from "@/lib/db/supabase-approved-review-memory-persistence-repository";
+import { mapApprovedReviewPlanToRpcPayload } from "@/lib/db/approved-review-memory-persistence-row-mapper";
+import { buildApprovedReviewPersistenceIdempotencyKey } from "@/lib/services/approved-review-memory-persistence-idempotency";
 import { executeApprovedReviewMemoryPersistence } from "@/lib/services/approved-review-memory-persistence-executor";
 import { resolveApprovedReviewPersistenceGate } from "@/lib/services/approved-review-memory-persistence-gate";
 import { previewApprovedReviewMemoryPersistence } from "@/lib/services/approved-review-memory-persistence-preview";
@@ -44,10 +46,21 @@ describe("approved review memory persistence executor boundary", () => {
     await expect(repo.appendMemoryPatchFromApprovedReview(context, { ...plan.patch!, operation: "update" as never })).resolves.toMatchObject({ ok: false });
     await expect(repo.appendMemoryItemFromApprovedReview(context, { ...plan.item!, namespace: "au" })).resolves.toMatchObject({ ok: false, error: { code: "namespace_mismatch" } });
   });
-  it("Supabase repository skeleton does not write", async () => {
-    const client = { from: vi.fn(), rpc: vi.fn() }; const repo = new SupabaseApprovedReviewMemoryPersistenceRepository(client); const plan = preview().plans[0];
-    await expect(repo.appendMemorySourceFromApprovedReview(context, plan.source!)).resolves.toMatchObject({ ok: false, error: { message: expect.stringContaining("not_implemented") } });
-    expect(client.from).not.toHaveBeenCalled(); expect(client.rpc).not.toHaveBeenCalled();
+  it("RPC payload builder rejects client user_id and idempotency keys are deterministic", () => {
+    const plan = preview().plans[0];
+    const key = buildApprovedReviewPersistenceIdempotencyKey({ context, reviewItemId: plan.itemId, decisionId: "decision-1", previewFingerprint: "fp" });
+    expect(buildApprovedReviewPersistenceIdempotencyKey({ context, reviewItemId: plan.itemId, decisionId: "decision-1", previewFingerprint: "fp" })).toBe(key);
+    expect(mapApprovedReviewPlanToRpcPayload({ context, plan, decisionId: "decision-1", idempotencyKey: key, previewFingerprint: "fp", clientPayload: { user_id: "evil" } })).toMatchObject({ ok: false });
+  });
+  it("Supabase repository calls only the transactional RPC and never direct inserts", async () => {
+    const plan = preview().plans[0];
+    const key = buildApprovedReviewPersistenceIdempotencyKey({ context, reviewItemId: plan.itemId, decisionId: "decision-1", previewFingerprint: "fp" });
+    const client = { from: vi.fn(), rpc: vi.fn(async () => ({ data: { executed: true, productionRouteEnabled: false, publicRouteEnabled: false, appendOnly: true, namespace: "real_life", userId: "server-user", counts: { sources: 1, items: 1, patches: 1, auditLogs: 1, markedReviewItems: 1, blocked: 0, failed: 0 }, blockers: [], warnings: [], source: { kind: "memory_source_append", id: "s", appendOnly: true }, item: { kind: "memory_item_append", id: "i", appendOnly: true }, patch: { kind: "memory_patch_append", id: "p", appendOnly: true }, auditLog: { kind: "audit_log_append", id: "a", appendOnly: true } }, error: null })) };
+    const repo = new SupabaseApprovedReviewMemoryPersistenceRepository(client);
+    await expect(repo.executeApprovedReviewPersistence!(context, { plan, decisionId: "decision-1", idempotencyKey: key, previewFingerprint: "fp" })).resolves.toMatchObject({ ok: true });
+    expect(client.rpc).toHaveBeenCalledOnce();
+    expect(client.rpc).toHaveBeenCalledWith("memory_execute_approved_review_persistence", expect.objectContaining({ p_review_item_id: "review-1", p_namespace: "real_life", p_idempotency_key: key }));
+    expect(client.from).not.toHaveBeenCalled();
   });
   it("public persist route is disabled, ingest remains disabled, preview remains no-write, and public route cannot execute approved items", async () => {
     const res = await publicPersistPost(); expect(res.status).toBe(501); expect(await res.json()).toMatchObject({ executed: false, message: "approved-review memory persistence execution is disabled" });
