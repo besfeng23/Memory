@@ -764,3 +764,12 @@ The database, RLS, tests, and memory contracts must come first. UI comes after t
 - Added a private admin/test-only persistence console shell and route boundary for approved-review memory persistence.
 - Public production persistence and `/api/memory/ingest` production writes remain disabled.
 - Next step: authenticated read/search memory API for persisted memory, without activating public ingest.
+
+
+## Prompt 68 — Authenticated persisted-memory read API
+
+- Transactional persistence RPC completed.
+- Private admin persistence console boundary completed.
+- Authenticated persisted-memory read API/repository layer added for namespace-scoped, read-only access.
+- Next step: persisted-memory browser UI and audit/detail pages.
+- Still no semantic retrieval or ChatGPT memory context assembly.
