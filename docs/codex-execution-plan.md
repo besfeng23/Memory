@@ -819,3 +819,10 @@ Still no semantic retrieval, embeddings, model calls, GPT Actions, MCP, or ChatG
 - Added a first reviewed-memory fixture dry-run pack with deterministic local/test-only fixtures, scenario contracts, expected receipts, an in-memory fixture repository, an operator harness, a verification script, an admin report shell, and operator documentation.
 - Next step: live internal operator wiring checklist for one real reviewed item.
 - Still no semantic retrieval or ChatGPT context assembly.
+
+## Prompt 76 — Live internal one-item workflow wiring
+
+- First reviewed-memory fixture dry-run pack completed.
+- Live internal one-item workflow wiring added behind internal/admin/operator gates.
+- Next step: perform one controlled operator execution and capture receipt/readback/audit proof.
+- Still no semantic retrieval or ChatGPT context assembly.
