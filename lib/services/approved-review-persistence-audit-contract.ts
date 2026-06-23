@@ -1,0 +1,6 @@
+export type ApprovedReviewPersistenceAuditEvent = { userId: string; namespace: string; reviewItemId: string; decisionId: string; idempotencyKey: string; previewFingerprint: string; sourceId?: string; itemId?: string; patchId?: string; executorResult: unknown; timestamp: string; appendOnly: true; gateResult: { allowed: boolean; blockers: string[] } };
+export type ApprovedReviewPersistenceAuditSummary = ApprovedReviewPersistenceAuditEvent & { auditReady: true };
+export function buildApprovedReviewPersistenceAuditSummary(input: Partial<ApprovedReviewPersistenceAuditEvent>): ApprovedReviewPersistenceAuditSummary {
+  for (const key of ["userId", "namespace", "reviewItemId", "decisionId", "idempotencyKey", "previewFingerprint"] as const) if (!input[key]) throw new Error(`missing_${key}`);
+  return { userId: input.userId!, namespace: input.namespace!, reviewItemId: input.reviewItemId!, decisionId: input.decisionId!, idempotencyKey: input.idempotencyKey!, previewFingerprint: input.previewFingerprint!, sourceId: input.sourceId, itemId: input.itemId, patchId: input.patchId, executorResult: input.executorResult ?? null, timestamp: input.timestamp ?? new Date(0).toISOString(), appendOnly: true, gateResult: input.gateResult ?? { allowed: false, blockers: ["not_evaluated"] }, auditReady: true };
+}

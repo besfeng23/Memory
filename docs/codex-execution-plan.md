@@ -757,3 +757,10 @@ The database, RLS, tests, and memory contracts must come first. UI comes after t
 - Public production persistence remains disabled, and `/api/memory/ingest` remains production-disabled.
 - Next step: authenticated private admin UI or CLI-only persistence execution review.
 - Still no public production persistence, model calls, retrieval, embeddings, pgvector, GPT Actions, or MCP.
+
+## Prompt 67 — private admin persistence execution console
+
+- Transactional Supabase RPC approved-review persistence is completed behind an internal gate.
+- Added a private admin/test-only persistence console shell and route boundary for approved-review memory persistence.
+- Public production persistence and `/api/memory/ingest` production writes remain disabled.
+- Next step: authenticated read/search memory API for persisted memory, without activating public ingest.
