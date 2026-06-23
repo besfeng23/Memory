@@ -789,3 +789,11 @@ The database, RLS, tests, and memory contracts must come first. UI comes after t
 - The flow verifies review → decision → preview → internal-gated persistence → readback → browser/audit verification without enabling public production ingest or public persistence.
 - Next step: authenticated session wiring and operator-safe live configuration.
 - Still no semantic retrieval or ChatGPT context assembly.
+
+## Prompt 71 — authenticated session and runtime gate wiring
+
+- Operator QA flow is completed as an internal/test-only boundary.
+- Authenticated server-derived session and runtime gate wiring were added for persisted-memory reads, the read-only browser, admin persistence console visibility, and operator QA visibility.
+- Admin persistence and QA execution remain disabled by default behind explicit environment, internal header, namespace, and admin/operator gates.
+- Next step: add operator-safe live configuration instructions and a deployment checklist.
+- Still no semantic retrieval, embeddings, model calls, GPT Actions, MCP, or ChatGPT context assembly.
