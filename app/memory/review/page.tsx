@@ -41,6 +41,14 @@ export default function MemoryReviewPage() {
             {disabledActions.map((action) => <button key={action} type="button" disabled className="rounded border px-3 py-1 text-sm opacity-60">{action}</button>)}
           </div>
         </SectionCard>
+        <SectionCard title="Persistence Preview" description="Approved items can be previewed only; preview does not persist memory.">
+          <p>Production memory writes disabled.</p>
+          <p>Approved review items are not memory yet.</p>
+          <p>Source/item/patch/audit plan counts: 0 / 0 / 0 / 0 placeholder.</p>
+          <p>Blockers/warnings: preview-only placeholder.</p>
+          <button type="button" disabled className="rounded border px-3 py-1 text-sm opacity-60">Persist memory</button>
+          <p>Persistence execution is not enabled.</p>
+        </SectionCard>
         <SectionCard title="Example UI-safe fields" description="Shape preview only; not real user data.">
           <ul>{safeFields.map((field) => <li key={field}>{field}</li>)}</ul>
         </SectionCard>

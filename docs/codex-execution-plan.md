@@ -734,3 +734,9 @@ The database, RLS, tests, and memory contracts must come first. UI comes after t
 - Added read-only route factory and safe disabled public route wiring.
 - Review UI now targets UI-safe read-only DTOs and disabled backend state.
 - Next step: review decision append RPC and controlled internal mutation path. Still not production memory persistence.
+
+## Prompt 64 — Approved-review persistence preview
+
+- Added approved-review persistence preview contracts, eligibility validation, append-only plan building, a disabled/internal route shell, repository interface contracts for future implementation, and review UI copy for a disabled persistence preview.
+- The next step is an internal/admin-gated transactional persistence executor that can append source/item/patch/audit records behind explicit gates.
+- This is still not production memory persistence: approved review items remain review records only, `/api/memory/ingest` remains production-disabled, and no model, retrieval, embedding, pgvector, GPT Actions, MCP, or Supabase memory writes are introduced.
