@@ -781,3 +781,11 @@ The database, RLS, tests, and memory contracts must come first. UI comes after t
 - Browser filtering is keyword-only and namespace-scoped; sensitive evidence is redacted by default.
 - Next step: audit/detail refinement and basic operator QA flow.
 - Still no semantic retrieval, embeddings, pgvector, model calls, GPT Actions, MCP, or ChatGPT context assembly.
+
+## Prompt 70 — Internal operator memory QA flow
+
+- Persisted-memory browser UI completed in Prompt 69 for read-only inspection.
+- Added an internal/test-only operator QA flow contract, runner, readback verifier, disabled-by-default route boundary, safe DTO mapping, and admin QA console shell.
+- The flow verifies review → decision → preview → internal-gated persistence → readback → browser/audit verification without enabling public production ingest or public persistence.
+- Next step: authenticated session wiring and operator-safe live configuration.
+- Still no semantic retrieval or ChatGPT context assembly.
