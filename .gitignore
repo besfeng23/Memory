@@ -32,3 +32,8 @@ next-env.d.ts
 # supabase local state
 supabase/.branches/
 supabase/.temp/
+
+# Claude Code local-only files
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/*.local.json
