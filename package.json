@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "npx --yes vitest@2.1.9 run --bail=1 --reporter=verbose",
+    "test": "npx --yes vitest@2.1.9 run",
     "test:watch": "npx --yes vitest@2.1.9",
     "ci": "npm run typecheck && npm run lint && npm run test && npm run build",
     "db:start": "supabase start",
