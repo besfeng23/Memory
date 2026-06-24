@@ -840,3 +840,10 @@ Still no semantic retrieval, embeddings, model calls, GPT Actions, MCP, or ChatG
 - Controlled operator execution runbook added for the first internal one-item approved memory append.
 - Next step: perform one controlled operator append in internal mode and capture proof.
 - Still no semantic retrieval or ChatGPT context assembly.
+
+## Prompt 79 — First-live-append readiness lock
+
+- Controlled operator execution runbook completed.
+- First-live-append readiness lock added for final internal safety checks before the first real approved append.
+- Next step: perform one controlled internal append and capture proof.
+- Still no semantic retrieval or ChatGPT context assembly.
