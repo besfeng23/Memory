@@ -5,6 +5,11 @@ const hasClientIdentityOverride = (input: SafePersistencePhaseCloseInput) => {
   const record = input as Record<string, unknown>;
   return record["user" + "_id"] !== undefined || record["user" + "Id"] !== undefined;
 };
+const hasUnsafeReportContent = (value: unknown): boolean => {
+  if (!value || typeof value !== "object") return false;
+  const text = JSON.stringify(value).toLowerCase();
+  return ["memorytext", "evidencetext", "rawuserid", "idempotencykey", "secret", "rawerrors"].some((needle) => text.includes(needle.toLowerCase()));
+};
 
 export function validateSafePersistencePhaseClose(input: SafePersistencePhaseCloseInput) {
   const blockers: SafePersistencePhaseCloseBlocker[] = [];
@@ -16,6 +21,7 @@ export function validateSafePersistencePhaseClose(input: SafePersistencePhaseClo
   if (!input.namespace) blockers.push(blocker("missing_namespace"));
   if (input.namespace && input.allowedNamespaces && !input.allowedNamespaces.includes(input.namespace)) blockers.push(blocker("namespace_not_allowed"));
   for (const key of ["reviewQueueProof","approvedReviewAppendProof","manualWorkflowProof","fixtureDryRunProof","liveOneItemWorkflowProof","proofPackProof","controlledRunbookProof","readinessLockProof","emergencyStopProof","executionPacketProof","proofCaptureProof","readbackVerifierProof","browserVerifierProof","auditVerifierProof","appendOnlyProof","redactionProof"] as const) if (!input[key]) blockers.push(blocker(`missing_${key}`));
+  if (hasUnsafeReportContent((input as Record<string, unknown>).rawReport)) blockers.push(blocker("unsafe_report_content_detected"));
   if (input.emergencyStopOn) blockers.push(blocker("emergency_stop_on"));
   if (input.publicPersistenceEnabled) blockers.push(blocker("public_persistence_enabled"));
   if (input.productionIngestEnabled) blockers.push(blocker("production_ingest_enabled"));
