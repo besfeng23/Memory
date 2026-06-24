@@ -27,7 +27,8 @@ describe("live one reviewed item workflow route", () => {
     const html = renderToStaticMarkup(<Page />);
     for (const copy of ["Live one-item memory workflow", "Internal operator workflow", "One approved review item only", "Public persistence is disabled", "Production ingest writes are disabled", "Execution requires typed confirmation: APPEND MEMORY"]) expect(html).toContain(copy);
     const routeHandler = readFileSync(join(process.cwd(), "lib/api/live-one-reviewed-item-workflow-route-handler.ts"), "utf8");
+    const directExecutor = readFileSync(join(process.cwd(), "lib/services/first-live-append-direct-proof-executor.ts"), "utf8");
     expect(routeHandler).toMatch(/PANDORA_ENABLE_ONE_ITEM_PROOF_EXECUTOR/);
-    expect(routeHandler).toMatch(/x-pandora-internal-operator-token/);
+    expect(directExecutor).toMatch(/x-pandora-internal-operator-token/);
   });
 });
