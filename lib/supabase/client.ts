@@ -3,27 +3,17 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/lib/supabase/database.types";
 
-function getPublicEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY") {
-  return process.env[name];
-}
-
-function getRequiredPublicEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY") {
-  const value = getPublicEnv(name);
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
+const browserSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const browserSupabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export function hasSupabaseBrowserConfig() {
-  return Boolean(getPublicEnv("NEXT_PUBLIC_SUPABASE_URL") && getPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
+  return Boolean(browserSupabaseUrl && browserSupabaseKey);
 }
 
 export function createSupabaseBrowserClient() {
-  return createBrowserClient<Database>(
-    getRequiredPublicEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    getRequiredPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-  );
+  if (!browserSupabaseUrl || !browserSupabaseKey) {
+    throw new Error("Missing public Supabase browser configuration.");
+  }
+
+  return createBrowserClient<Database>(browserSupabaseUrl, browserSupabaseKey);
 }
