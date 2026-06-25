@@ -21,7 +21,7 @@ Do not enable or add any of these unless explicitly instructed and reviewed:
 
 - public memory reads
 - public memory persistence
-- production ingest writes
+- production ingest writes unless reviewed
 - model calls
 - embeddings
 - semantic retrieval
