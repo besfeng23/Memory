@@ -6,25 +6,18 @@
       "Bash(npm run lint)",
       "Bash(npm run test)",
       "Bash(npm run build)",
-      "Bash(npm run ci)",
       "Bash(git status)",
-      "Bash(git diff *)",
-      "Bash(git log *)"
+      "Bash(git diff)",
+      "Bash(git log)"
     ],
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(./secrets/**)",
-      "Read(./.vercel/**)",
-      "Read(./.supabase/**)",
-      "Bash(printenv *)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(.vercel/**)",
+      "Read(.supabase/**)",
+      "Read(secrets/**)",
       "Bash(env)",
-      "Bash(curl *)",
-      "Bash(wget *)"
+      "Bash(printenv)"
     ]
-  },
-  "env": {
-    "PANDORA_CLAUDE_CODE_PROJECT": "memory",
-    "PANDORA_CLAUDE_CODE_READ_CLAUDE_MD": "true"
   }
 }
