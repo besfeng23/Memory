@@ -25,6 +25,10 @@ function getRedirectUrl(nextPath?: string) {
   return callbackUrl.toString();
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function LoginForm({ nextPath = "/dashboard" }: Readonly<{ nextPath?: string }>) {
   const returnPath = safeNextPath(nextPath);
   const hasConfig = hasSupabaseBrowserConfig();
@@ -87,9 +91,22 @@ export function LoginForm({ nextPath = "/dashboard" }: Readonly<{ nextPath?: str
       return;
     }
 
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    if (!sessionData.session) {
+      await wait(300);
+      const { data: retryData } = await supabase.auth.getSession();
+      if (!retryData.session) {
+        setState("error");
+        setMessage("A browser session was not created yet. Try again, or open this page in Safari/Chrome instead of an in-app browser.");
+        return;
+      }
+    }
+
     setState("anonymous");
-    setMessage("Anonymous operator session created. Redirecting…");
-    window.location.assign(returnPath);
+    setMessage("Anonymous operator session created. Returning to memory browser…");
+    await wait(250);
+    window.location.replace(returnPath);
   }
 
   return (
