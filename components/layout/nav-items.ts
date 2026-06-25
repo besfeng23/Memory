@@ -12,7 +12,7 @@ export const navItems: NavItem[] = [
   { label: "Memory Search", href: "/memory/search", status: "planned", group: "Core" },
   { label: "Memory Timeline", href: "/memory/timeline", status: "planned", group: "Core" },
   { label: "Review Queue", href: "/memory/review", status: "planned", group: "Core" },
-  { label: "Memory Browser", href: "/admin/memory/browser?namespace=real_life", status: "implemented", group: "Core" },
+  { label: "Phase 3B Admin Browser", href: "/admin/memory/browser?namespace=real_life", status: "implemented", group: "Core" },
   { label: "AU Worlds", href: "/au/worlds", status: "planned", group: "AU / Story" },
   { label: "Character Bible", href: "/au/characters", status: "planned", group: "AU / Story" },
   { label: "Relationship State", href: "/au/relationships", status: "planned", group: "AU / Story" },
