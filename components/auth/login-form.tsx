@@ -7,15 +7,26 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type LoginState = "idle" | "submitting" | "anonymous" | "sent" | "error";
 
-function getRedirectUrl() {
+function safeNextPath(value?: string) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/dashboard";
+  }
+
+  return value;
+}
+
+function getRedirectUrl(nextPath?: string) {
   const configuredUrl = process.env.NEXT_PUBLIC_APP_URL;
   const origin = typeof window === "undefined" ? configuredUrl : window.location.origin;
   const baseUrl = configuredUrl || origin;
+  const callbackUrl = new URL("/auth/callback", baseUrl);
+  callbackUrl.searchParams.set("next", safeNextPath(nextPath));
 
-  return new URL("/auth/callback", baseUrl).toString();
+  return callbackUrl.toString();
 }
 
-export function LoginForm() {
+export function LoginForm({ nextPath = "/dashboard" }: Readonly<{ nextPath?: string }>) {
+  const returnPath = safeNextPath(nextPath);
   const hasConfig = hasSupabaseBrowserConfig();
   const supabase = useMemo(() => (hasConfig ? createSupabaseBrowserClient() : null), [hasConfig]);
   const [email, setEmail] = useState("");
@@ -44,7 +55,7 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        emailRedirectTo: getRedirectUrl(),
+        emailRedirectTo: getRedirectUrl(returnPath),
       },
     });
 
@@ -77,8 +88,8 @@ export function LoginForm() {
     }
 
     setState("anonymous");
-    setMessage("Anonymous operator session created. Redirecting to dashboard…");
-    window.location.assign("/dashboard");
+    setMessage("Anonymous operator session created. Redirecting…");
+    window.location.assign(returnPath);
   }
 
   return (
@@ -99,7 +110,7 @@ export function LoginForm() {
         {state === "submitting" ? "Sending…" : "Send magic link"}
       </button>
       <button className="button-link" disabled={state === "submitting" || !hasConfig} onClick={handleAnonymousLogin} type="button">
-        Continue anonymously for operator proof
+        Continue anonymously and return to memory browser
       </button>
       <p className="auth-note">Temporary anonymous sessions are only for internal operator proof work. Memory append still requires the internal operator token.</p>
       {!hasConfig ? <p className="auth-form__message auth-form__message--error">Supabase public environment variables are required before magic links can be sent.</p> : null}
