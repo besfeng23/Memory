@@ -20,6 +20,24 @@ export type VerificationLine = {
   status: VerificationStatus;
   detail: string;
 };
+export type DeploymentVerificationState =
+  | "not configured"
+  | "pending deployment"
+  | "deployed but unverified"
+  | "verified manually required"
+  | "blocked";
+export type DeploymentStatusDto = {
+  deployedCommitSha: VerificationLine;
+  expectedReleaseSha: VerificationLine;
+  deployedShaMatchesExpected: VerificationLine;
+  vercelEnvironment: VerificationLine;
+  vercelUrl: VerificationLine;
+  productionVerificationStatus: VerificationLine;
+  productionVerificationReviewer: VerificationLine;
+  productionVerificationAt: VerificationLine;
+  deploymentVerificationState: DeploymentVerificationState;
+  caveats: string[];
+};
 export type RuntimeGateMatrixRow = {
   gateKey: PandoraRuntimeGate;
   envVarName: string;
@@ -32,6 +50,7 @@ export type AdminMemoryVerificationDto = {
   readOnly: true;
   route: "/admin/memory/verification";
   commitSha: VerificationLine;
+  deploymentStatus: DeploymentStatusDto;
   vercelEnvProof: VerificationLine[];
   persistedMemoryReadGateStatus: VerificationLine;
   supabaseReadAvailability: VerificationLine;
@@ -92,6 +111,87 @@ const configured = (
     detail: v ? `${envVar}=configured` : `${envVar}=not configured`,
   };
 };
+
+const buildDeploymentStatus = (env: Partial<NodeJS.ProcessEnv>): DeploymentStatusDto => {
+  const deployedSha =
+    value(env.VERCEL_GIT_COMMIT_SHA) ??
+    value(env.GIT_COMMIT_SHA) ??
+    value(env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA);
+  const expectedSha = value(env.PANDORA_EXPECTED_RELEASE_SHA);
+  const verificationStatus = value(env.PANDORA_PRODUCTION_VERIFICATION_STATUS);
+  const reviewer = value(env.PANDORA_PRODUCTION_VERIFICATION_REVIEWER);
+  const verifiedAt = value(env.PANDORA_PRODUCTION_VERIFICATION_AT);
+  const vercelUrl = value(env.VERCEL_URL);
+  const shaStatus: VerificationLine = {
+    label: "Deployed SHA match",
+    status: !expectedSha
+      ? "not configured"
+      : deployedSha && deployedSha === expectedSha
+        ? "available"
+        : "blocked",
+    detail: !expectedSha
+      ? "PANDORA_EXPECTED_RELEASE_SHA is not configured; exact release matching cannot be proven."
+      : deployedSha === expectedSha
+        ? "Deployed commit SHA matches PANDORA_EXPECTED_RELEASE_SHA."
+        : "Deployed commit SHA does not match PANDORA_EXPECTED_RELEASE_SHA.",
+  };
+  const missingProof = !deployedSha || !vercelUrl;
+  const verifiedIncomplete =
+    verificationStatus === "verified" && (!reviewer || !verifiedAt);
+  const state: DeploymentVerificationState = !verificationStatus
+    ? "not configured"
+    : !deployedSha
+      ? "pending deployment"
+      : (expectedSha && deployedSha !== expectedSha) || verifiedIncomplete
+        ? "blocked"
+        : verificationStatus === "verified"
+          ? "verified manually required"
+          : missingProof
+            ? "pending deployment"
+            : "deployed but unverified";
+  const caveats = [
+    !vercelUrl
+      ? "Vercel deployment URL proof is missing; a quota-limited or unrecorded deployment cannot be treated as production verification."
+      : null,
+    verificationStatus !== "verified"
+      ? "Production closure is not complete until owner/operator verification is recorded."
+      : null,
+    "CI success is not the same as production verification.",
+  ].filter(Boolean) as string[];
+  return {
+    deployedCommitSha: {
+      label: "Actual deployed SHA",
+      status: deployedSha ? "available" : "not configured",
+      detail: deployedSha ?? "VERCEL_GIT_COMMIT_SHA/GIT_COMMIT_SHA/NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA not configured",
+    },
+    expectedReleaseSha: {
+      label: "Expected release SHA",
+      status: expectedSha ? "available" : "not configured",
+      detail: expectedSha ?? "PANDORA_EXPECTED_RELEASE_SHA not configured",
+    },
+    deployedShaMatchesExpected: shaStatus,
+    vercelEnvironment: configured("Vercel environment", "VERCEL_ENV", env),
+    vercelUrl: configured("Vercel URL", "VERCEL_URL", env),
+    productionVerificationStatus: {
+      label: "Production verification status",
+      status: verificationStatus === "verified" ? "available" : verificationStatus ? "blocked" : "not configured",
+      detail: verificationStatus ?? "PANDORA_PRODUCTION_VERIFICATION_STATUS not configured",
+    },
+    productionVerificationReviewer: {
+      label: "Production verification reviewer",
+      status: reviewer ? "available" : "not configured",
+      detail: reviewer ? "PANDORA_PRODUCTION_VERIFICATION_REVIEWER=configured" : "PANDORA_PRODUCTION_VERIFICATION_REVIEWER not configured",
+    },
+    productionVerificationAt: {
+      label: "Production verification timestamp",
+      status: verifiedAt ? "available" : "not configured",
+      detail: verifiedAt ?? "PANDORA_PRODUCTION_VERIFICATION_AT not configured",
+    },
+    deploymentVerificationState: state,
+    caveats,
+  };
+};
+
 const enabledRiskGates = (runtime: PandoraRuntimeSafetyConfigResult) =>
   riskGates.filter((gate) => runtime.config[gate]);
 const gateDetail = (
@@ -136,6 +236,7 @@ export async function loadAdminMemoryVerification(input: {
     value(env.VERCEL_GIT_COMMIT_SHA) ??
     value(env.GIT_COMMIT_SHA) ??
     value(env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA);
+  const deploymentStatus = buildDeploymentStatus(env);
   const persistedReadGateEnabled = runtime.config.persistedMemoryReadEnabled;
   const browser = await loadPersistedMemoryBrowserView({
     authenticated: input.session.ok,
@@ -194,6 +295,22 @@ export async function loadAdminMemoryVerification(input: {
   ].includes(supabaseReadAvailability.status);
   const closeBlockers = [
     commit ? null : "commit proof missing",
+    value(env.PANDORA_EXPECTED_RELEASE_SHA) && commit !== value(env.PANDORA_EXPECTED_RELEASE_SHA)
+      ? "deployed SHA does not match expected release SHA"
+      : null,
+    value(env.PANDORA_PRODUCTION_VERIFICATION_STATUS)
+      ? null
+      : "production verification status missing",
+    value(env.PANDORA_PRODUCTION_VERIFICATION_STATUS) && value(env.PANDORA_PRODUCTION_VERIFICATION_STATUS) !== "verified"
+      ? "production verification status is not verified"
+      : null,
+    value(env.PANDORA_PRODUCTION_VERIFICATION_STATUS) === "verified" && !value(env.PANDORA_PRODUCTION_VERIFICATION_REVIEWER)
+      ? "production verification reviewer missing"
+      : null,
+    value(env.PANDORA_PRODUCTION_VERIFICATION_STATUS) === "verified" && !value(env.PANDORA_PRODUCTION_VERIFICATION_AT)
+      ? "production verification timestamp missing"
+      : null,
+    value(env.VERCEL_URL) ? null : "deployment URL proof missing",
     input.session.ok ? null : "operator session missing",
     persistedReadGateEnabled ? null : "persisted read gate disabled",
     supabaseReadAvailability.status === "available"
@@ -221,9 +338,10 @@ export async function loadAdminMemoryVerification(input: {
       status: commit ? "available" : "not configured",
       detail: commit ?? "VERCEL_GIT_COMMIT_SHA/GIT_COMMIT_SHA not configured",
     },
+    deploymentStatus,
     vercelEnvProof: [
-      configured("Vercel environment", "VERCEL_ENV", env),
-      configured("Vercel URL", "VERCEL_URL", env),
+      deploymentStatus.vercelEnvironment,
+      deploymentStatus.vercelUrl,
       configured("Skills commit proof", "PANDORA_SKILLS_COMMIT_SHA", env),
       configured("Skills proof status", "PANDORA_SKILLS_PROOF_STATUS", env),
     ],
@@ -285,7 +403,7 @@ export async function loadAdminMemoryVerification(input: {
         label: "Phase 3E status",
         status: closeRecommended ? "available" : "blocked",
         detail: closeRecommended
-          ? "Dashboard proof is closure-ready pending owner/operator production verification."
+          ? "Dashboard proof is code-ready and production-closure-ready only because owner/operator deployment verification proof is recorded."
           : "Closure hardening is present but final close is blocked.",
       },
       {
@@ -327,7 +445,7 @@ export async function loadAdminMemoryVerification(input: {
       label: "Final recommendation",
       status: closeRecommended ? "available" : "blocked",
       detail: closeRecommended
-        ? "Close after deployed manual checklist passes."
+        ? "Close: deployed manual production verification proof is recorded and all safety checks pass."
         : `Do not close. Blockers: ${closeBlockers.join("; ")}.`,
       closeRecommended,
       blockers: closeBlockers,

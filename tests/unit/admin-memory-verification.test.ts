@@ -55,10 +55,19 @@ const session = {
   },
   blockers: [],
 };
-const safeEnv = {
+const codeReadyEnv = {
   VERCEL_GIT_COMMIT_SHA: "abc123",
   PANDORA_SKILLS_COMMIT_SHA: "skills123",
   PANDORA_ENABLE_PERSISTED_MEMORY_READ: "true",
+};
+const safeEnv = {
+  ...codeReadyEnv,
+  PANDORA_EXPECTED_RELEASE_SHA: "abc123",
+  VERCEL_URL: "memory-preview.vercel.app",
+  VERCEL_ENV: "preview",
+  PANDORA_PRODUCTION_VERIFICATION_STATUS: "verified",
+  PANDORA_PRODUCTION_VERIFICATION_REVIEWER: "owner",
+  PANDORA_PRODUCTION_VERIFICATION_AT: "2026-06-26T00:00:00Z",
 };
 const riskGateEnvVars = [
   ["modelCallsEnabled", "PANDORA_ENABLE_MODEL_CALLS"],
@@ -138,6 +147,101 @@ describe("admin memory verification safety", () => {
         "Audit proof availability",
         "Source/patch proof availability",
         "Skills commit proof availability",
+      ]),
+    );
+  });
+
+
+
+  it("blocks final closure when production verification status is missing", async () => {
+    const dto = await loadAdminMemoryVerification({
+      session,
+      context: { userId: "u1", namespace: "real_life" },
+      repository: repo,
+      env: { ...codeReadyEnv, VERCEL_URL: "memory-preview.vercel.app" },
+    });
+    expect(dto.recommendation.closeRecommended).toBe(false);
+    expect(dto.deploymentStatus.deploymentVerificationState).toBe("not configured");
+    expect(dto.recommendation.blockers).toContain("production verification status missing");
+  });
+
+  it("blocks final closure when the deployed SHA mismatches the expected release SHA", async () => {
+    const dto = await loadAdminMemoryVerification({
+      session,
+      context: { userId: "u1", namespace: "real_life" },
+      repository: repo,
+      env: { ...safeEnv, PANDORA_EXPECTED_RELEASE_SHA: "expected456" },
+    });
+    expect(dto.deploymentStatus.deployedShaMatchesExpected.status).toBe("blocked");
+    expect(dto.recommendation.closeRecommended).toBe(false);
+    expect(dto.recommendation.blockers).toContain("deployed SHA does not match expected release SHA");
+  });
+
+  it("does not let matching expected and deployed SHAs override other blockers", async () => {
+    const dto = await loadAdminMemoryVerification({
+      session,
+      context: { userId: "u1", namespace: "real_life" },
+      repository: repo,
+      env: { ...safeEnv, PANDORA_ENABLE_PUBLIC_MEMORY_READ: "true" },
+    });
+    expect(dto.deploymentStatus.deployedShaMatchesExpected.status).toBe("available");
+    expect(dto.recommendation.closeRecommended).toBe(false);
+    expect(dto.recommendation.blockers).toContain("publicMemoryReadEnabled enabled");
+  });
+
+  it("blocks final closure when verified status has no reviewer", async () => {
+    const env = { ...safeEnv };
+    delete env.PANDORA_PRODUCTION_VERIFICATION_REVIEWER;
+    const dto = await loadAdminMemoryVerification({
+      session,
+      context: { userId: "u1", namespace: "real_life" },
+      repository: repo,
+      env,
+    });
+    expect(dto.recommendation.closeRecommended).toBe(false);
+    expect(dto.recommendation.blockers).toContain("production verification reviewer missing");
+  });
+
+  it("blocks final closure when verified status has no timestamp", async () => {
+    const env = { ...safeEnv };
+    delete env.PANDORA_PRODUCTION_VERIFICATION_AT;
+    const dto = await loadAdminMemoryVerification({
+      session,
+      context: { userId: "u1", namespace: "real_life" },
+      repository: repo,
+      env,
+    });
+    expect(dto.recommendation.closeRecommended).toBe(false);
+    expect(dto.recommendation.blockers).toContain("production verification timestamp missing");
+  });
+
+  it("blocks final closure when deployment URL proof is missing", async () => {
+    const env = { ...safeEnv };
+    delete env.VERCEL_URL;
+    const dto = await loadAdminMemoryVerification({
+      session,
+      context: { userId: "u1", namespace: "real_life" },
+      repository: repo,
+      env,
+    });
+    expect(dto.recommendation.closeRecommended).toBe(false);
+    expect(dto.recommendation.blockers).toContain("deployment URL proof missing");
+  });
+
+  it("proves CI/code readiness is not enough for final close", async () => {
+    const dto = await loadAdminMemoryVerification({
+      session,
+      context: { userId: "u1", namespace: "real_life" },
+      repository: repo,
+      env: codeReadyEnv,
+    });
+    expect(dto.persistedMemoryReadGateStatus.status).toBe("available");
+    expect(dto.unsafeGateStatus.status).toBe("disabled");
+    expect(dto.recommendation.closeRecommended).toBe(false);
+    expect(dto.recommendation.blockers).toEqual(
+      expect.arrayContaining([
+        "production verification status missing",
+        "deployment URL proof missing",
       ]),
     );
   });

@@ -3,9 +3,21 @@
 ## Release metadata
 
 - Release date:
-- Deployed commit SHA:
+- Expected release SHA:
+- Actual deployed SHA:
+- SHA match result (`match`, `mismatch`, or `not checked`):
+- Deployment status (`not configured`, `pending deployment`, `deployed but unverified`, `verified manually required`, or `blocked`):
 - Vercel deployment URL:
+- Vercel quota/deployment note:
 - Operator account used:
+
+## Production verification fields
+
+- Production verification status (`verified`, `pending`, `blocked`, or `not configured`):
+- Reviewer:
+- Verification timestamp:
+- Close/no-close result:
+- Exact blocker list:
 
 ## Route results
 
