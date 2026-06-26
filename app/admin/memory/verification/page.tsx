@@ -43,7 +43,7 @@ export default async function AdminMemoryVerificationPage() {
       <PageHeader
         eyebrow="Internal admin"
         title="Production memory verification"
-        description="Read-only, authenticated/admin-only Phase 3E closure dashboard for production-safe memory proof."
+        description="Read-only, authenticated/admin-only Phase 3F deployment recovery and production verification sealing dashboard."
       />
       {!session.ok ? (
         <SectionCard
@@ -56,12 +56,32 @@ export default async function AdminMemoryVerificationPage() {
         </SectionCard>
       ) : null}
       <SectionCard
-        title="Phase 3E Closure Status"
+        title="Phase 3F Closure Status"
         description="Compact close/no-close dashboard. Missing values are shown as not configured, unavailable, or blocked instead of crashing."
       >
         <ul>
           {dto.closureStatus.map((line) => (
             <Badge key={line.label} line={line} />
+          ))}
+        </ul>
+      </SectionCard>
+
+      <SectionCard
+        title="Phase 3F Deployment Recovery"
+        description="Deployment proof is env-backed only. Production closure is not complete until owner/operator verification is recorded. CI success is not the same as production verification."
+      >
+        <ul>
+          <Badge line={dto.deploymentStatus.expectedReleaseSha} />
+          <Badge line={dto.deploymentStatus.deployedCommitSha} />
+          <Badge line={dto.deploymentStatus.deployedShaMatchesExpected} />
+          <Badge line={dto.deploymentStatus.vercelEnvironment} />
+          <Badge line={dto.deploymentStatus.vercelUrl} />
+          <Badge line={dto.deploymentStatus.productionVerificationStatus} />
+          <Badge line={dto.deploymentStatus.productionVerificationReviewer} />
+          <Badge line={dto.deploymentStatus.productionVerificationAt} />
+          <li><strong>Deployment verification state:</strong> {dto.deploymentStatus.deploymentVerificationState}</li>
+          {dto.deploymentStatus.caveats.map((caveat) => (
+            <li key={caveat}><strong>Deployment caveat:</strong> {caveat}</li>
           ))}
         </ul>
       </SectionCard>
@@ -82,7 +102,7 @@ export default async function AdminMemoryVerificationPage() {
       </SectionCard>
       <SectionCard
         title="Runtime gate matrix"
-        description="Every Pandora runtime gate, expected Phase 3E state, and closure impact."
+        description="Every Pandora runtime gate, expected closure state, and closure impact."
       >
         <div className="table-wrap">
           <table>
