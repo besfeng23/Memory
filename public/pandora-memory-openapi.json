@@ -2,11 +2,65 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Pandora Memory Bridge",
-    "version": "4A.0",
+    "version": "4A.1",
     "description": "Secure bearer-auth bridge for ChatGPT Actions or external agents. No anonymous access."
   },
   "servers": [{ "url": "https://pandorasmemory.vercel.app" }],
   "components": {
+    "schemas": {
+      "Namespace": {
+        "type": "string",
+        "enum": ["real_life", "au"]
+      },
+      "Sensitivity": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "private"]
+      },
+      "ContextRequest": {
+        "type": "object",
+        "properties": {
+          "namespace": { "$ref": "#/components/schemas/Namespace" },
+          "query": { "type": "string" },
+          "current_task": { "type": "string" },
+          "max_items": { "type": "integer", "minimum": 1, "maximum": 20, "default": 8 },
+          "include_risks": { "type": "boolean", "default": true },
+          "include_people": { "type": "boolean", "default": true },
+          "include_projects": { "type": "boolean", "default": true }
+        },
+        "required": ["namespace"]
+      },
+      "CaptureRequest": {
+        "type": "object",
+        "required": ["namespace", "raw_text"],
+        "properties": {
+          "namespace": { "$ref": "#/components/schemas/Namespace" },
+          "source": { "type": "string", "default": "chatgpt_action" },
+          "source_ref": { "type": "string" },
+          "raw_text": { "type": "string" },
+          "importance": { "type": "integer", "minimum": 0, "maximum": 10, "default": 5 },
+          "sensitivity": { "$ref": "#/components/schemas/Sensitivity" }
+        }
+      },
+      "DistillRequest": {
+        "type": "object",
+        "properties": {
+          "namespace": { "$ref": "#/components/schemas/Namespace" },
+          "pack_type": {
+            "type": "string",
+            "enum": ["daily", "master"],
+            "default": "master"
+          }
+        },
+        "required": ["namespace", "pack_type"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
@@ -26,25 +80,20 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "namespace": { "type": "string", "enum": ["real_life", "au"] },
-                  "query": { "type": "string" },
-                  "current_task": { "type": "string" },
-                  "max_items": { "type": "integer", "minimum": 1, "maximum": 20 },
-                  "include_risks": { "type": "boolean" },
-                  "include_people": { "type": "boolean" },
-                  "include_projects": { "type": "boolean" }
-                }
-              }
+              "schema": { "$ref": "#/components/schemas/ContextRequest" }
             }
           }
         },
         "responses": {
           "200": { "description": "Compact context pack" },
-          "401": { "description": "Authentication required" },
-          "403": { "description": "Gate disabled or forbidden" }
+          "401": {
+            "description": "Authentication required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "403": {
+            "description": "Gate disabled or forbidden",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     },
@@ -57,25 +106,20 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["raw_text"],
-                "properties": {
-                  "namespace": { "type": "string", "enum": ["real_life", "au"] },
-                  "source": { "type": "string" },
-                  "source_ref": { "type": "string" },
-                  "raw_text": { "type": "string" },
-                  "importance": { "type": "integer", "minimum": 0, "maximum": 10 },
-                  "sensitivity": { "type": "string", "enum": ["low", "medium", "high", "private"] }
-                }
-              }
+              "schema": { "$ref": "#/components/schemas/CaptureRequest" }
             }
           }
         },
         "responses": {
           "200": { "description": "Captured event id" },
-          "401": { "description": "Authentication required" },
-          "403": { "description": "Gate disabled or forbidden" }
+          "401": {
+            "description": "Authentication required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "403": {
+            "description": "Gate disabled or forbidden",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     },
@@ -88,20 +132,20 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "namespace": { "type": "string", "enum": ["real_life", "au"] },
-                  "pack_type": { "type": "string", "enum": ["daily", "master"] }
-                }
-              }
+              "schema": { "$ref": "#/components/schemas/DistillRequest" }
             }
           }
         },
         "responses": {
           "200": { "description": "Generated context pack" },
-          "401": { "description": "Authentication required" },
-          "403": { "description": "Gate disabled or forbidden" }
+          "401": {
+            "description": "Authentication required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "403": {
+            "description": "Gate disabled or forbidden",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     }
