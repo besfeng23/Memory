@@ -15,22 +15,66 @@ const repo: PersistedMemoryReadRepository = {
   getMemoryItemDetail: async () => ({ ok: false, blocker: { code: "not_found", message: "not found" } }),
   getMemorySourceDetail: async () => ({ ok: false, blocker: { code: "not_found", message: "not found" } }),
 };
+const throwingRepo: PersistedMemoryReadRepository = {
+  listMemoryItems: async () => { throw new Error("read gate should block before repository access"); },
+  listMemorySources: async () => { throw new Error("read gate should block before repository access"); },
+  listMemoryPatches: async () => { throw new Error("read gate should block before repository access"); },
+  listMemoryAuditEvents: async () => { throw new Error("read gate should block before repository access"); },
+  getMemoryItemDetail: async () => { throw new Error("read gate should block before repository access"); },
+  getMemorySourceDetail: async () => { throw new Error("read gate should block before repository access"); },
+};
 const session = { ok: true as const, session: { userId: "u1", authenticated: true, allowedNamespaces: ["real_life"], serverDerivedOnly: true, clientUserIdAccepted: false, serviceRoleUsed: false, publicReadAllowed: false, publicPersistenceAllowed: false }, blockers: [] };
+const safeEnv = { VERCEL_GIT_COMMIT_SHA: "abc123", PANDORA_SKILLS_COMMIT_SHA: "skills123", PANDORA_ENABLE_PERSISTED_MEMORY_READ: "true" };
+const riskGateEnvVars = [
+  ["modelCallsEnabled", "PANDORA_ENABLE_MODEL_CALLS"],
+  ["embeddingsEnabled", "PANDORA_ENABLE_EMBEDDINGS"],
+  ["semanticRetrievalEnabled", "PANDORA_ENABLE_SEMANTIC_RETRIEVAL"],
+  ["gptActionsEnabled", "PANDORA_ENABLE_GPT_ACTIONS"],
+  ["mcpEnabled", "PANDORA_ENABLE_MCP"],
+  ["adminPersistenceConsoleEnabled", "PANDORA_ENABLE_ADMIN_PERSISTENCE_CONSOLE"],
+  ["operatorQaFlowEnabled", "PANDORA_ENABLE_OPERATOR_MEMORY_QA_FLOW"],
+] as const;
 
 describe("admin memory verification safety", () => {
-  it("builds a closure safety summary with public reads and unsafe writes disabled", async () => {
-    const dto = await loadAdminMemoryVerification({ session, context: { userId: "u1", namespace: "real_life" }, repository: repo, env: { VERCEL_GIT_COMMIT_SHA: "abc123", PANDORA_SKILLS_COMMIT_SHA: "skills123" } });
+  it("builds a closure safety summary with public reads and risk gates disabled", async () => {
+    const dto = await loadAdminMemoryVerification({ session, context: { userId: "u1", namespace: "real_life" }, repository: repo, env: safeEnv });
     expect(dto.readOnly).toBe(true);
+    expect(dto.persistedMemoryReadGateStatus.status).toBe("available");
     expect(dto.publicReadStatus.status).toBe("disabled");
     expect(dto.unsafeGateStatus.status).toBe("disabled");
     expect(dto.recommendation.closeRecommended).toBe(true);
-    expect(dto.checklist.map((i) => i.label)).toEqual(expect.arrayContaining(["Authenticated browser", "Public redirect", "Read-only behavior", "Audit proof availability", "Source/patch proof availability", "Skills commit proof availability"]));
+    expect(dto.checklist.map((i) => i.label)).toEqual(expect.arrayContaining(["Authenticated browser", "Public redirect", "Read-only behavior", "Persisted read gate", "Audit proof availability", "Source/patch proof availability", "Skills commit proof availability"]));
   });
 
-  it("blocks closure when public reads or unsafe writes are enabled", async () => {
-    const dto = await loadAdminMemoryVerification({ session, context: { userId: "u1", namespace: "real_life" }, repository: repo, env: { VERCEL_GIT_COMMIT_SHA: "abc123", PANDORA_ENABLE_PUBLIC_MEMORY_READ: "true", PANDORA_ENABLE_MEMORY_INGEST_PRODUCTION_WRITES: "true" } });
+  it("does not override the persisted memory read gate", async () => {
+    const dto = await loadAdminMemoryVerification({ session, context: { userId: "u1", namespace: "real_life" }, repository: throwingRepo, env: { VERCEL_GIT_COMMIT_SHA: "abc123" } });
+    expect(dto.persistedMemoryReadGateStatus.status).toBe("disabled");
+    expect(dto.supabaseReadAvailability.status).toBe("disabled");
+    expect(dto.supabaseReadAvailability.detail).toContain("did not override");
+    expect(dto.recommendation.closeRecommended).toBe(false);
+  });
+
+  it("blocks closure when public reads or write persistence gates are enabled", async () => {
+    const dto = await loadAdminMemoryVerification({ session, context: { userId: "u1", namespace: "real_life" }, repository: repo, env: { ...safeEnv, PANDORA_ENABLE_PUBLIC_MEMORY_READ: "true", PANDORA_ENABLE_MEMORY_INGEST_PRODUCTION_WRITES: "true" } });
     expect(dto.publicReadStatus.status).toBe("blocked");
     expect(dto.unsafeGateStatus.status).toBe("blocked");
+    expect(dto.unsafeGateStatus.detail).toContain("publicMemoryReadEnabled");
+    expect(dto.unsafeGateStatus.detail).toContain("ingestProductionWriteEnabled");
+    expect(dto.recommendation.closeRecommended).toBe(false);
+  });
+
+  it("blocks closure when model, embedding, retrieval, actions, or MCP gates are enabled", async () => {
+    for (const [gateName, envVar] of riskGateEnvVars) {
+      const dto = await loadAdminMemoryVerification({ session, context: { userId: "u1", namespace: "real_life" }, repository: repo, env: { ...safeEnv, [envVar]: "true" } });
+      expect(dto.unsafeGateStatus.status).toBe("blocked");
+      expect(dto.unsafeGateStatus.detail).toContain(gateName);
+      expect(dto.recommendation.closeRecommended).toBe(false);
+    }
+  });
+
+  it("blocks closure when commit proof is missing", async () => {
+    const dto = await loadAdminMemoryVerification({ session, context: { userId: "u1", namespace: "real_life" }, repository: repo, env: { PANDORA_ENABLE_PERSISTED_MEMORY_READ: "true" } });
+    expect(dto.commitSha.status).toBe("not configured");
     expect(dto.recommendation.closeRecommended).toBe(false);
   });
 
