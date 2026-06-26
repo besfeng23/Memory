@@ -22,3 +22,25 @@ describe("persisted memory browser UI", () => {
   it("public browser route redirects to the authenticated admin route and keeps public read disabled", () => { const publicPage = readFileSync(join(root, "app/memory/browser/page.tsx"), "utf8"); const runtimeConfig = readFileSync(join(root, "lib/config/pandora-runtime-safety-config.ts"), "utf8"); expect(publicPage).toContain('redirect("/admin/memory/browser?namespace=real_life")'); expect(runtimeConfig).toContain('publicMemoryReadEnabled: "PANDORA_ENABLE_PUBLIC_MEMORY_READ"'); expect(runtimeConfig).toContain('env[v] === "true"'); });
   it("critical disabled and gated routes remain protected", () => { expect(readFileSync(join(root, "lib/api/memory-ingest-route-handler.ts"), "utf8")).toMatch(/disabled|not implemented|production/i); expect(readFileSync(join(root, "app/api/memory/review/[id]/persist/route.ts"), "utf8")).toMatch(/disabled|internal|admin/i); expect(readFileSync(join(root, "app/api/admin/memory/persistence/review/[id]/execute/route.ts"), "utf8")).toMatch(/admin|internal/i); });
 });
+
+describe("Phase 3C browser hardening", () => {
+  it("renders explicit provenance, URL-backed filters, and skills proof panel", async () => {
+    const vm = await loadPersistedMemoryBrowserView({ context: ctx, repository: repo(), filters: { namespace: "real_life", createdFrom: "2026-01-01", createdTo: "2026-01-31" } });
+    const html = renderToStaticMarkup(<MemoryBrowserShell viewModel={vm} />);
+    expect(html).toContain("Source type");
+    expect(html).toContain("Audit reference");
+    expect(html).toContain("Patch/proof status");
+    expect(html).toContain("Skills commit proof");
+    expect(html).toContain("not configured");
+    expect(html).toContain("name=\"namespace\"");
+    expect(html).toContain("name=\"sourceType\"");
+    expect(html).toContain("name=\"proofStatus\"");
+  });
+
+  it("adds read-only audit route and keeps unsafe actions absent", () => {
+    const auditPage = readFileSync(join(root, "app/admin/memory/audit/page.tsx"), "utf8");
+    expect(auditPage).toContain("Read-only memory audit viewer");
+    expect(auditPage).toContain("resolvePandoraServerSession");
+    expect(auditPage).not.toMatch(/\.insert\(|\.update\(|\.delete\(|executeApproved|persistApproved/i);
+  });
+});

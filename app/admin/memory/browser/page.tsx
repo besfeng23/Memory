@@ -55,6 +55,8 @@ export default async function AdminMemoryBrowserPage({ searchParams }: PageProps
       memoryKind: param(params, "memoryKind"),
       createdFrom: param(params, "createdFrom"),
       createdTo: param(params, "createdTo"),
+      sourceType: param(params, "sourceType"),
+      proofStatus: param(params, "proofStatus"),
     },
   });
 

@@ -14,7 +14,7 @@ export async function loadPersistedMemoryBrowserView(input: Input): Promise<Pers
   if (!namespace) return empty([blocker("namespace_required", "Namespace is required for persisted-memory reads.")], input.filters, runtime);
   if (!input.repository) return empty([blocker("read_error", "Read repository is unavailable.")], { ...input.filters, namespace }, runtime);
   const context: PersistedMemoryReadContext = { userId: input.context.userId, namespace };
-  const filter = { keyword: input.filters?.keyword, sourceId: input.filters?.sourceId, memoryKind: input.filters?.memoryKind, category: input.filters?.category, createdFrom: input.filters?.createdFrom, createdTo: input.filters?.createdTo };
+  const filter = { keyword: input.filters?.keyword, sourceId: input.filters?.sourceId, memoryKind: input.filters?.memoryKind, sourceType: input.filters?.sourceType, proofStatus: input.filters?.proofStatus, category: input.filters?.category, createdFrom: input.filters?.createdFrom, createdTo: input.filters?.createdTo };
   const list = await input.repository.listMemoryItems(context, { namespace, filter });
   if (!list.ok) return empty([list.blocker], { ...input.filters, namespace }, runtime);
   const selectedItemId = input.selectedItemId ?? list.items[0]?.id;
@@ -31,5 +31,5 @@ export async function loadPersistedMemoryBrowserView(input: Input): Promise<Pers
   const auditEvents = auditResult.ok ? auditResult.items.map(toBrowserAuditView) : [];
   const items = list.items.map((item) => toBrowserItemView(item, { patchCount: item.id === selectedItemId ? patches.length : 0, auditCount: item.id === selectedItemId ? auditEvents.length : 0 }));
   const detail = detailResult && detailResult.ok ? toBrowserDetailView(detailResult.item, sources, { patchCount: patches.length, auditCount: auditEvents.length }) : null;
-  return { ...browserSafety, gateStatuses: runtime.gates, namespace, selectedItemId, filters: { ...input.filters, namespace }, items, detail, sources, patches, auditEvents, blockers, empty: items.length === 0 };
+  return { ...browserSafety, gateStatuses: runtime.gates, proof: { commitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA, skillsCommit: process.env.PANDORA_SKILLS_COMMIT_SHA, skillsStatus: process.env.PANDORA_SKILLS_PROOF_STATUS }, namespace, selectedItemId, filters: { ...input.filters, namespace }, items, detail, sources, patches, auditEvents, blockers, empty: items.length === 0 };
 }

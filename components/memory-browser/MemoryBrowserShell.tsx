@@ -5,6 +5,7 @@ import { MemoryItemDetail } from "./MemoryItemDetail";
 import { MemoryItemList } from "./MemoryItemList";
 import { MemoryPatchTimeline } from "./MemoryPatchTimeline";
 import { MemorySafetyBanner } from "./MemorySafetyBanner";
+import { MemoryProofPanel } from "./MemoryProofPanel";
 import { MemorySourcePanel } from "./MemorySourcePanel";
 
 type GateMap = Record<string, { enabled?: boolean }>;
@@ -17,7 +18,7 @@ const hasReadGateBlocker = (viewModel: PersistedMemoryBrowserViewModel) => viewM
 function BrowserStateCard({ viewModel, routeKind }: Readonly<{ viewModel: PersistedMemoryBrowserViewModel; routeKind: BrowserRouteKind }>) {
   const authenticated = !hasAuthBlocker(viewModel);
   const readGateDisabled = hasReadGateBlocker(viewModel);
-  const rowsHiddenByFilters = authenticated && !readGateDisabled && viewModel.items.length === 0 && Boolean(viewModel.filters.keyword || viewModel.filters.sourceId || viewModel.filters.memoryKind || viewModel.filters.createdFrom || viewModel.filters.createdTo);
+  const rowsHiddenByFilters = authenticated && !readGateDisabled && viewModel.items.length === 0 && Boolean(viewModel.filters.keyword || viewModel.filters.sourceId || viewModel.filters.memoryKind || viewModel.filters.createdFrom || viewModel.filters.createdTo || viewModel.filters.sourceType || viewModel.filters.proofStatus);
   const noRowsForSession = authenticated && !readGateDisabled && viewModel.items.length === 0 && !rowsHiddenByFilters;
 
   return (
@@ -48,6 +49,7 @@ export function MemoryBrowserShell({ viewModel, routeKind = "admin" }: Readonly<
   return (
     <div className="page-stack">
       <MemorySafetyBanner safety={viewModel} />
+      <MemoryProofPanel commitSha={viewModel.proof?.commitSha} skillsCommit={viewModel.proof?.skillsCommit} skillsStatus={viewModel.proof?.skillsStatus} />
       <BrowserStateCard viewModel={viewModel} routeKind={routeKind} />
       <section className="section-card">
         <h2>Namespace selector/status</h2>
@@ -55,6 +57,8 @@ export function MemoryBrowserShell({ viewModel, routeKind = "admin" }: Readonly<
           <label>Namespace <select name="namespace" defaultValue={viewModel.filters.namespace ?? ""}><option value="">Choose namespace</option><option value="real_life">real_life</option><option value="au">au</option></select></label>
           <label>Keyword filter <input name="keyword" defaultValue={viewModel.filters.keyword ?? ""} placeholder="keyword only" /></label>
           <label>Source id <input name="sourceId" defaultValue={viewModel.filters.sourceId ?? ""} /></label>
+          <label>Source type <input name="sourceType" defaultValue={viewModel.filters.sourceType ?? ""} placeholder="review, import, receipt" /></label>
+          <label>Proof status <select name="proofStatus" defaultValue={viewModel.filters.proofStatus ?? ""}><option value="">Any status</option><option value="patch proof available">Patch proof available</option><option value="proof not available">Proof not available</option></select></label>
           <label>Kind/category <input name="memoryKind" defaultValue={viewModel.filters.memoryKind ?? ""} /></label>
           <label className="memory-browser-filter-form__range">Date range <span><input name="createdFrom" defaultValue={viewModel.filters.createdFrom ?? ""} placeholder="from" /> <input name="createdTo" defaultValue={viewModel.filters.createdTo ?? ""} placeholder="to" /></span></label>
           <p>Keyword filter only — semantic retrieval is not enabled.</p>
