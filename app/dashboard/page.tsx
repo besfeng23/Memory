@@ -34,7 +34,7 @@ export default async function DashboardPage() {
           eyebrow="Foundation dashboard"
           title="Implementation status without simulated memory data."
           description="This dashboard tracks completed foundation work and planned Pandora modules. It does not expose memory features because the memory engine and database schema are not implemented."
-          actions={<><Link className="button-link" href="/api/health">View health endpoint</Link><Link className="button-link" href="/admin/memory/browser?namespace=real_life">Memory Browser</Link></>}
+          actions={<><Link className="button-link" href="/api/health">View health endpoint</Link><Link className="button-link" href="/admin/memory/browser?namespace=real_life">Phase 3B Admin Browser</Link></>}
         />
 
         <SectionCard title="Authentication status" description="Server-side Supabase session lookup for the current request. No profile or memory records are loaded.">
@@ -56,8 +56,8 @@ export default async function DashboardPage() {
           <StatusList items={completedPrompts} />
         </SectionCard>
 
-        <SectionCard title="Memory Browser" description="Read-only view of persisted memories, sources, patches, and audit trail.">
-          <Link className="doc-link" href="/admin/memory/browser?namespace=real_life"><span><strong>Phase 3B Memory Browser</strong><small>Authenticated admin read-only browser for persisted memories, sources, patches, and audit trail.</small></span><StatusBadge status="implemented" /></Link>
+        <SectionCard title="Phase 3B Admin Browser" description="Use this authenticated admin route for proof rows. The old /memory/browser public shell now redirects here and public reads remain disabled.">
+          <Link className="doc-link" href="/admin/memory/browser?namespace=real_life"><span><strong>Open /admin/memory/browser?namespace=real_life</strong><small>Authenticated admin read-only browser for persisted memories, sources, patches, and audit trail. The public route is not a proof-row browser.</small></span><StatusBadge status="implemented" /></Link>
         </SectionCard>
 
         <SectionCard title="Not implemented yet" description="Required systems that remain planned and must not be implied as live.">
