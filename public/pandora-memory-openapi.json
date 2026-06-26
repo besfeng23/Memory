@@ -2,62 +2,172 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Pandora Memory Bridge",
-    "version": "4A.1",
-    "description": "Secure bearer-auth bridge for ChatGPT Actions or external agents. No anonymous access."
+    "version": "4A.2",
+    "description": "Secure bearer-auth bridge for ChatGPT Actions or external agents. No anonymous access. ChatGPT Actions compatible schema with components.schemas as an object."
   },
-  "servers": [{ "url": "https://pandorasmemory.vercel.app" }],
+  "servers": [
+    {
+      "url": "https://pandorasmemory.vercel.app"
+    }
+  ],
   "components": {
     "schemas": {
       "Namespace": {
         "type": "string",
-        "enum": ["real_life", "au"]
+        "enum": ["real_life", "au"],
+        "description": "Memory namespace to query or write into."
       },
       "Sensitivity": {
         "type": "string",
-        "enum": ["low", "medium", "high", "private"]
+        "enum": ["low", "medium", "high", "private"],
+        "description": "Review sensitivity label for a captured memory event."
       },
       "ContextRequest": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["namespace"],
         "properties": {
-          "namespace": { "$ref": "#/components/schemas/Namespace" },
-          "query": { "type": "string" },
-          "current_task": { "type": "string" },
-          "max_items": { "type": "integer", "minimum": 1, "maximum": 20, "default": 8 },
-          "include_risks": { "type": "boolean", "default": true },
-          "include_people": { "type": "boolean", "default": true },
-          "include_projects": { "type": "boolean", "default": true }
-        },
-        "required": ["namespace"]
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "query": {
+            "type": "string",
+            "description": "Question, task, or search phrase to retrieve compact memory context for."
+          },
+          "current_task": {
+            "type": "string",
+            "description": "Current user task that the memory context should support."
+          },
+          "max_items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 8
+          },
+          "include_risks": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_people": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_projects": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "ContextResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "context": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
       },
       "CaptureRequest": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["namespace", "raw_text"],
         "properties": {
-          "namespace": { "$ref": "#/components/schemas/Namespace" },
-          "source": { "type": "string", "default": "chatgpt_action" },
-          "source_ref": { "type": "string" },
-          "raw_text": { "type": "string" },
-          "importance": { "type": "integer", "minimum": 0, "maximum": 10, "default": 5 },
-          "sensitivity": { "$ref": "#/components/schemas/Sensitivity" }
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "source": {
+            "type": "string",
+            "default": "chatgpt_action"
+          },
+          "source_ref": {
+            "type": "string"
+          },
+          "raw_text": {
+            "type": "string",
+            "description": "Memory event text to capture for review."
+          },
+          "importance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 5
+          },
+          "sensitivity": {
+            "$ref": "#/components/schemas/Sensitivity"
+          }
+        }
+      },
+      "CaptureResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          }
         }
       },
       "DistillRequest": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["namespace", "pack_type"],
         "properties": {
-          "namespace": { "$ref": "#/components/schemas/Namespace" },
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
           "pack_type": {
             "type": "string",
             "enum": ["daily", "master"],
             "default": "master"
           }
-        },
-        "required": ["namespace", "pack_type"]
+        }
+      },
+      "DistillResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "pack_id": {
+            "type": "string"
+          },
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "pack_type": {
+            "type": "string"
+          }
+        }
       },
       "ErrorResponse": {
         "type": "object",
+        "additionalProperties": true,
         "properties": {
-          "error": { "type": "string" },
-          "message": { "type": "string" }
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
         }
       }
     },
@@ -69,30 +179,61 @@
       }
     }
   },
-  "security": [{ "bearerAuth": [] }],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/api/memory/context": {
       "post": {
         "operationId": "getMemoryContext",
         "summary": "Return compact Pandora memory context for a task",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ContextRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ContextRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Compact context pack" },
+          "200": {
+            "description": "Compact context pack",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Authentication required",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Gate disabled or forbidden",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -101,24 +242,51 @@
       "post": {
         "operationId": "captureMemoryEvent",
         "summary": "Capture a reviewable Pandora memory event",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CaptureRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CaptureRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Captured event id" },
+          "200": {
+            "description": "Captured event id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Authentication required",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Gate disabled or forbidden",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -127,24 +295,51 @@
       "post": {
         "operationId": "distillMemoryContext",
         "summary": "Build a deterministic Pandora context pack without model calls or embeddings",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/DistillRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/DistillRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Generated context pack" },
+          "200": {
+            "description": "Generated context pack",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistillResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Authentication required",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Gate disabled or forbidden",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
