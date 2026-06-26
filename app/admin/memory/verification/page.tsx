@@ -100,6 +100,43 @@ export default async function AdminMemoryVerificationPage() {
           <Badge line={dto.recommendation} />
         </ul>
       </SectionCard>
+
+      <SectionCard
+        title="Phase 4A Controlled Persistence Readiness"
+        description="Read-only foundation remains closed. Controlled persistence is disabled until reviewed write gate is enabled. Public writes remain forbidden."
+      >
+        <ul>
+          <li><strong>proposal schema available:</strong> available via memory_proposals migration</li>
+          <li><strong>proposal RLS available:</strong> authenticated user/namespace scoped, no anon policy</li>
+          <li><strong>proposal route guard status:</strong> admin proposal routes require Supabase session and server-derived identity</li>
+          <li><strong>reviewed persistence gate status:</strong> {runtime.config.approvedReviewPersistenceEnabled ? "enabled" : "disabled safe default"}</li>
+          <li><strong>mutation endpoint status:</strong> POST/server-action only; blocked when gate is disabled</li>
+          <li><strong>audit write proof status:</strong> proposal lifecycle writes audit_logs events</li>
+          <li><strong>public write status:</strong> disabled</li>
+          <li><strong>direct write status:</strong> disabled; browser remains read-only</li>
+          <li><strong>proposal workflow status:</strong> {runtime.config.approvedReviewPersistenceEnabled ? "enabled" : "ready but disabled"}</li>
+          <li><strong>Phase 3F read-only closure:</strong> closed</li>
+          <li><strong>Phase 4A write feature:</strong> {runtime.config.approvedReviewPersistenceEnabled ? "enabled" : "disabled"}</li>
+        </ul>
+      </SectionCard>
+
+      <SectionCard
+        title="Phase 4A Daily ChatGPT Memory Bridge"
+        description="Phase 4A bridge features are useful runtime additions. When disabled, they are not Phase 3F closure failures."
+      >
+        <ul>
+          <li><strong>memory event schema:</strong> available via memory_events migration</li>
+          <li><strong>context pack schema:</strong> available via memory_context_packs migration</li>
+          <li><strong>capture API gate:</strong> {runtime.config.memoryCaptureApiEnabled ? "enabled" : "not enabled yet"}</li>
+          <li><strong>context API gate:</strong> {runtime.config.memoryContextApiEnabled ? "enabled" : "not enabled yet"}</li>
+          <li><strong>distillation gate:</strong> {runtime.config.memoryDistillationEnabled ? "enabled" : "not enabled yet"}</li>
+          <li><strong>ChatGPT Action bridge gate:</strong> {runtime.config.chatgptActionBridgeEnabled ? "enabled" : "not enabled yet"}</li>
+          <li><strong>public reads:</strong> disabled</li>
+          <li><strong>public writes:</strong> disabled</li>
+          <li><strong>model calls / embeddings / semantic retrieval / MCP:</strong> disabled</li>
+          <li><strong>self-test:</strong> available at /admin/memory/bridge/self-test</li>
+        </ul>
+      </SectionCard>
       <SectionCard
         title="Runtime gate matrix"
         description="Every Pandora runtime gate, expected closure state, and closure impact."

@@ -82,7 +82,7 @@ const runtimeGateKeys: PandoraRuntimeGate[] = [
   "gptActionsEnabled",
   "mcpEnabled",
 ];
-type RiskGate = Exclude<PandoraRuntimeGate, "persistedMemoryReadEnabled">;
+type RiskGate = Exclude<PandoraRuntimeGate, "persistedMemoryReadEnabled" | "memoryCaptureApiEnabled" | "memoryContextApiEnabled" | "memoryDistillationEnabled" | "chatgptActionBridgeEnabled" | "memoryBridgeTestWriteEnabled">;
 const riskGateLabels: Record<RiskGate, string> = {
   adminPersistenceConsoleEnabled: "adminPersistenceConsoleEnabled",
   approvedReviewPersistenceEnabled: "approvedReviewPersistenceEnabled",

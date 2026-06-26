@@ -1,0 +1,38 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Pandora Memory Bridge", "version": "4A.0", "description": "Secure bearer-auth bridge for ChatGPT Actions or external agents. No anonymous access." },
+  "servers": [{ "url": "https://YOUR_DEPLOYMENT_HOST" }],
+  "components": {
+    "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "Pandora bridge token" } }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/api/memory/context": {
+      "post": {
+        "operationId": "getMemoryContext",
+        "summary": "Return compact Pandora memory context for a task",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "namespace": { "type": "string", "enum": ["real_life", "au"] }, "query": { "type": "string" }, "current_task": { "type": "string" }, "max_items": { "type": "integer", "minimum": 1, "maximum": 20 }, "include_risks": { "type": "boolean" }, "include_people": { "type": "boolean" }, "include_projects": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "Compact context pack" }, "401": { "description": "Authentication required" }, "403": { "description": "Gate disabled or forbidden" } }
+      }
+    },
+    "/api/memory/capture": {
+      "post": {
+        "operationId": "captureMemoryEvent",
+        "summary": "Capture a reviewable Pandora memory event",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["raw_text"], "properties": { "namespace": { "type": "string", "enum": ["real_life", "au"] }, "source": { "type": "string" }, "source_ref": { "type": "string" }, "raw_text": { "type": "string" }, "importance": { "type": "integer", "minimum": 0, "maximum": 10 }, "sensitivity": { "type": "string", "enum": ["low", "medium", "high", "private"] } } } } } },
+        "responses": { "200": { "description": "Captured event id" }, "401": { "description": "Authentication required" }, "403": { "description": "Gate disabled or forbidden" } }
+      }
+    },
+    "/api/memory/distill": {
+      "post": {
+        "operationId": "distillMemoryContext",
+        "summary": "Build a deterministic Pandora context pack without model calls or embeddings",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "namespace": { "type": "string", "enum": ["real_life", "au"] }, "pack_type": { "type": "string", "enum": ["daily", "master"] } } } } } },
+        "responses": { "200": { "description": "Generated context pack" }, "401": { "description": "Authentication required" }, "403": { "description": "Gate disabled or forbidden" } }
+      }
+    }
+  }
+}
