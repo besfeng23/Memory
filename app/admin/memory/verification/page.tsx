@@ -22,11 +22,12 @@ export default async function AdminMemoryVerificationPage() {
   const loginPath = `/auth/login?next=${encodeURIComponent("/admin/memory/verification")}`;
   return (
     <AppShell>
-      <PageHeader eyebrow="Internal admin" title="Production memory verification" description="Read-only, authenticated/admin-only verification route for Phase 3D closure safety. It reports deployment proof, read availability, route guard status, unsafe gates, public read status, and a close/no-close recommendation without enabling public reads or writes." />
+      <PageHeader eyebrow="Internal admin" title="Production memory verification" description="Read-only, authenticated/admin-only verification route for Phase 3D closure safety." />
       {!session.ok ? <SectionCard title="Authentication required" description="No persisted rows or proof data are exposed without a Supabase operator session."><Link className="button-link button-link--primary" href={loginPath}>Start operator session</Link></SectionCard> : null}
       <SectionCard title="Safety summary" description="Missing values are shown as not configured, unavailable, or blocked instead of crashing.">
         <ul>
           <Badge line={dto.commitSha} />
+          <Badge line={dto.persistedMemoryReadGateStatus} />
           <Badge line={dto.supabaseReadAvailability} />
           <Badge line={dto.memoryBrowserRouteStatus} />
           <Badge line={dto.auditRouteStatus} />
