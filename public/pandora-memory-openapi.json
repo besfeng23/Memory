@@ -14,18 +14,28 @@
     "schemas": {
       "Namespace": {
         "type": "string",
-        "enum": ["real_life", "au"],
+        "enum": [
+          "real_life",
+          "au"
+        ],
         "description": "Memory namespace to query or write into."
       },
       "Sensitivity": {
         "type": "string",
-        "enum": ["low", "medium", "high", "private"],
+        "enum": [
+          "low",
+          "medium",
+          "high",
+          "private"
+        ],
         "description": "Review sensitivity label for a captured memory event."
       },
       "ContextRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["namespace"],
+        "required": [
+          "namespace"
+        ],
         "properties": {
           "namespace": {
             "$ref": "#/components/schemas/Namespace"
@@ -83,7 +93,10 @@
       "CaptureRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["namespace", "raw_text"],
+        "required": [
+          "namespace",
+          "raw_text"
+        ],
         "properties": {
           "namespace": {
             "$ref": "#/components/schemas/Namespace"
@@ -128,14 +141,20 @@
       "DistillRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["namespace", "pack_type"],
+        "required": [
+          "namespace",
+          "pack_type"
+        ],
         "properties": {
           "namespace": {
             "$ref": "#/components/schemas/Namespace"
           },
           "pack_type": {
             "type": "string",
-            "enum": ["daily", "master"],
+            "enum": [
+              "daily",
+              "master"
+            ],
             "default": "master"
           }
         }
@@ -169,6 +188,10 @@
             "type": "string"
           }
         }
+      },
+      "AdaptiveMemoryResponse": {
+        "type": "object",
+        "additionalProperties": true
       }
     },
     "securitySchemes": {
@@ -337,6 +360,181 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/adaptive/context": {
+      "post": {
+        "operationId": "api_memory_adaptive_context",
+        "summary": "Return adaptive ChatGPT context",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/adaptive/analyze": {
+      "post": {
+        "operationId": "api_memory_adaptive_analyze",
+        "summary": "Analyze memory candidates",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/adaptive/session-digest": {
+      "post": {
+        "operationId": "api_memory_adaptive_session_digest",
+        "summary": "Create session digest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/search": {
+      "post": {
+        "operationId": "api_memory_search",
+        "summary": "Hybrid memory search",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/profiles/refresh": {
+      "post": {
+        "operationId": "api_memory_profiles_refresh",
+        "summary": "Refresh adaptive profiles",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
                 }
               }
             }
