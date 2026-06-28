@@ -1,5 +1,11 @@
 import { createSupabaseBridgeAdminClient } from "@/lib/supabase/bridge-admin";
 
+type EnvAuditInsertClient = {
+  from(table: "env_audit_events"): {
+    insert(row: Record<string, unknown>): Promise<{ error: { message: string } | null }>;
+  };
+};
+
 export type EnvAuditEvent = {
   action: string;
   actorUserId?: string | null;
@@ -26,7 +32,7 @@ export async function recordEnvAuditEvent(event: Omit<EnvAuditEvent, "createdAt"
   events.push(stored);
 
   try {
-    const client = createSupabaseBridgeAdminClient() as any;
+    const client = createSupabaseBridgeAdminClient() as unknown as EnvAuditInsertClient;
     const { error } = await client.from("env_audit_events").insert({
       project_id: event.projectId ?? null,
       key_id: event.keyId ?? null,
