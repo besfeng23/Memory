@@ -55,3 +55,22 @@ Phase 5A is deterministic and keyword-based. It does not implement the future re
 ## Phase 5B Candidate Review
 
 Phase 5A queues durable memory candidates automatically, but it does not make them permanent memory by default. Phase 5B adds the operator review console at `/admin/memory/candidates`, where Joven can approve, reject, edit, mark duplicate, or capture candidates. This keeps Pandora teachable: autopilot surfaces what might matter, while human review prevents noisy, sensitive, wrong, duplicate, or wrong-namespace items from polluting durable memory.
+
+## Phase 5C Daily Compaction
+
+Phase 5A queues candidates. Phase 5B reviews and captures candidates. Phase 5C compacts reviewed/captured memory into versioned profiles, open loops, and daily context packs. This is the deterministic compounding layer that lets Pandora improve over time without enabling model calls, embeddings, semantic retrieval, public reads, public writes, or permanent auto-capture.
+
+Recommended environment posture:
+
+```bash
+PANDORA_ENABLE_MEMORY_DISTILLATION=true
+PANDORA_INTERNAL_JOB_TOKEN=<server-only-secret>
+PANDORA_ENABLE_MODEL_CALLS=false
+PANDORA_ENABLE_EMBEDDINGS=false
+PANDORA_ENABLE_SEMANTIC_RETRIEVAL=false
+PANDORA_ENABLE_PUBLIC_MEMORY_READ=false
+PANDORA_ENABLE_PUBLIC_MEMORY_PERSISTENCE=false
+PANDORA_ENABLE_AUTO_CAPTURE=false
+```
+
+`PANDORA_INTERNAL_JOB_TOKEN` must remain server-only and must never be exposed as a `NEXT_PUBLIC_*` variable. Do not enable model calls or embeddings just for compaction, and do not enable permanent auto-capture yet.
