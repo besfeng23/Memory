@@ -51,3 +51,7 @@ PANDORA_ENABLE_AUTO_CAPTURE=false
 ## Limitations
 
 Phase 5A is deterministic and keyword-based. It does not implement the future review console, feedback learning, contradiction detection, daily compaction, real embeddings, model-powered extraction, or permanent autosave.
+
+## Phase 5B Candidate Review
+
+Phase 5A queues durable memory candidates automatically, but it does not make them permanent memory by default. Phase 5B adds the operator review console at `/admin/memory/candidates`, where Joven can approve, reject, edit, mark duplicate, or capture candidates. This keeps Pandora teachable: autopilot surfaces what might matter, while human review prevents noisy, sensitive, wrong, duplicate, or wrong-namespace items from polluting durable memory.
