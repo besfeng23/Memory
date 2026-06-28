@@ -17,7 +17,7 @@ describe("pandora server session and runtime gates", () => {
     expect(createRepositoryContextFromPandoraSession({ sessionResult, namespace: "au" })).toMatchObject({ ok: false });
     expect(createRepositoryContextFromPandoraSession({ sessionResult: { ok: false, session: null, blockers: [{ code: "auth_required", message: "no" }] }, namespace: "real_life" })).toMatchObject({ ok: false });
   });
-  it("defaults dangerous runtime gates false", () => { const r = resolvePandoraRuntimeSafetyConfig({}); expect(Object.values(r.config).every((v) => v === false)).toBe(true); });
+  it("defaults dangerous runtime gates false", () => { const r = resolvePandoraRuntimeSafetyConfig({}); expect(Object.entries(r.config).every(([key, v]) => key === "sensitiveMemoryRequiresApproval" ? v === true : v === false)).toBe(true); });
   it("persisted read route blocks disabled gate, auth, namespace, client override, and mutations", async () => {
     const mk = (deps: Parameters<typeof createPersistedMemoryReadRouteHandler>[0]) => createPersistedMemoryReadRouteHandler({ ...deps, repository: deps.repository ?? { listMemoryItems: async () => ({ ok: true, items: [], page: 1, pageSize: 25, readOnly: true, wouldWrite: false, wouldCallModel: false, wouldEmbed: false, semanticRetrievalEnabled: false, requiresAuth: true, namespaceScoped: true }) } }, "listItems");
     expect((await mk({ env: () => ({}) })(new NextRequest("http://x.test?namespace=real_life"))).status).toBe(501);

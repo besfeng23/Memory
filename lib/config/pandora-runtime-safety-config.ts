@@ -15,7 +15,12 @@ export type PandoraRuntimeGate =
   | "embeddingsEnabled"
   | "semanticRetrievalEnabled"
   | "gptActionsEnabled"
-  | "mcpEnabled";
+  | "mcpEnabled"
+  | "memoryAutopilotEnabled"
+  | "autoRetrieveEnabled"
+  | "autoCandidateQueueEnabled"
+  | "autoCaptureLowRiskEnabled"
+  | "sensitiveMemoryRequiresApproval";
 
 export type PandoraRuntimeGateStatus = { enabled: boolean; envVar: string; safeDefault: false; dangerous: boolean };
 export type PandoraRuntimeSafetyConfig = Record<PandoraRuntimeGate, boolean>;
@@ -39,10 +44,15 @@ const vars: Record<PandoraRuntimeGate, string> = {
   semanticRetrievalEnabled: "PANDORA_ENABLE_SEMANTIC_RETRIEVAL",
   gptActionsEnabled: "PANDORA_ENABLE_GPT_ACTIONS",
   mcpEnabled: "PANDORA_ENABLE_MCP",
+  memoryAutopilotEnabled: "PANDORA_ENABLE_MEMORY_AUTOPILOT",
+  autoRetrieveEnabled: "PANDORA_AUTO_RETRIEVE",
+  autoCandidateQueueEnabled: "PANDORA_AUTO_CANDIDATE_QUEUE",
+  autoCaptureLowRiskEnabled: "PANDORA_AUTO_CAPTURE_LOW_RISK",
+  sensitiveMemoryRequiresApproval: "PANDORA_SENSITIVE_MEMORY_REQUIRES_APPROVAL",
 };
 
 export function resolvePandoraRuntimeSafetyConfig(env: Partial<NodeJS.ProcessEnv> = process.env): PandoraRuntimeSafetyConfigResult {
-  const config = Object.fromEntries(Object.entries(vars).map(([key, envVar]) => [key, env[envVar] === "true"])) as PandoraRuntimeSafetyConfig; // env[v] === "true"
+  const config = Object.fromEntries(Object.entries(vars).map(([key, envVar]) => [key, key === "sensitiveMemoryRequiresApproval" ? env[envVar] !== "false" : env[envVar] === "true"])) as PandoraRuntimeSafetyConfig; // env[v] === "true"
   const gates = Object.fromEntries(
     Object.entries(vars).map(([key, envVar]) => [
       key,
@@ -55,4 +65,10 @@ export function resolvePandoraRuntimeSafetyConfig(env: Partial<NodeJS.ProcessEnv
     ]),
   ) as Record<PandoraRuntimeGate, PandoraRuntimeGateStatus>;
   return { config, gates };
+}
+
+export type PandoraMemoryAutopilotMode = "off" | "suggest" | "queue" | "capture_low_risk";
+export function resolvePandoraMemoryAutopilotMode(env: Partial<NodeJS.ProcessEnv> = process.env): PandoraMemoryAutopilotMode {
+  const value = env.PANDORA_MEMORY_AUTOPILOT;
+  return value === "suggest" || value === "queue" || value === "capture_low_risk" ? value : "off";
 }

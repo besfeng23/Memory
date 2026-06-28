@@ -541,6 +541,73 @@
           }
         }
       }
+    },
+    "/api/memory/adaptive/turn": {
+      "post": {
+        "summary": "Phase 5A adaptive turn autopilot",
+        "description": "Pre-answer auto-retrieval and post-answer review-gated memory candidate queueing. Requires private bridge auth; public memory read/write remains disabled. Secrets are redacted or blocked and namespaces remain separated.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "user_message",
+                  "mode"
+                ],
+                "properties": {
+                  "namespace": {
+                    "type": "string",
+                    "enum": [
+                      "real_life",
+                      "au"
+                    ]
+                  },
+                  "user_message": {
+                    "type": "string"
+                  },
+                  "assistant_draft": {
+                    "type": "string"
+                  },
+                  "current_task": {
+                    "type": "string"
+                  },
+                  "conversation_type": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "pre_answer",
+                      "post_answer"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Autopilot decision with optional context or queued candidates."
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or invalid private bridge auth."
+          },
+          "403": {
+            "description": "Required runtime gate disabled."
+          }
+        }
+      }
     }
   }
 }
