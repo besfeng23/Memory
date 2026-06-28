@@ -1,0 +1,55 @@
+import { getEnvBrokerStatus, PHASE5A_QUEUE_SAFE, PHASE5C_SAFE_PRODUCTION } from "@/lib/services/env-broker-service";
+
+export default function AdminEnvPage() {
+  const status = getEnvBrokerStatus();
+  return <main style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
+    <h1>Pandora Env Broker</h1>
+    <p>Internal environment-variable control plane. Raw secret values are never rendered; only status and redacted fingerprints appear.</p>
+
+    <section><h2>Overview</h2><ul>
+      <li>Total env keys discovered: {status.totals.discovered}</li>
+      <li>Managed keys: {status.totals.managed}</li>
+      <li>Missing required keys: {status.totals.requiredMissing}</li>
+      <li>Unsafe keys: {status.totals.unsafe}</li>
+      <li>Unknown keys: {status.totals.unknown}</li>
+      <li>Broker enabled: {String(status.brokerEnabled)}</li>
+    </ul></section>
+
+    <section><h2>Projects</h2><table><tbody><tr><th>Project</th><th>Provider</th><th>Provider project ID</th><th>Production URL</th><th>Provider token status</th></tr><tr><td>{status.project.displayName}</td><td>{status.project.provider}</td><td>{status.project.providerProjectId}</td><td>{status.project.productionUrl}</td><td>{process.env.PANDORA_VERCEL_API_TOKEN ? "available" : "blocked_missing_provider_token"}</td></tr></tbody></table></section>
+
+    <section><h2>Actions</h2><div style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+      <form method="post" action="/api/admin/env/providers/vercel/push" style={{ border: "1px solid #ddd", padding: 12 }}>
+        <h3>Generate and push internal job token</h3>
+        <input type="hidden" name="key" value="PANDORA_INTERNAL_JOB_TOKEN" />
+        <p>Creates a fresh value server-side, pushes it to Vercel production, stores only fingerprint metadata, and returns no raw value.</p>
+        <button type="submit">Generate + push to Vercel</button>
+      </form>
+
+      <form method="post" action="/api/admin/env/keys/rotate" style={{ border: "1px solid #ddd", padding: 12 }}>
+        <h3>Rotate internal job token</h3>
+        <input type="hidden" name="key" value="PANDORA_INTERNAL_JOB_TOKEN" />
+        <label>Confirmation <input name="confirmation" placeholder="ROTATE PANDORA_INTERNAL_JOB_TOKEN" style={{ minWidth: 360 }} /></label>
+        <p>Rotation also pushes the new value to Vercel production and requires redeploy before authenticated smoke tests can use it.</p>
+        <button type="submit">Rotate + push</button>
+      </form>
+
+      <form method="post" action="/api/admin/env/providers/vercel/push-safe-defaults" style={{ border: "1px solid #ddd", padding: 12 }}>
+        <h3>Push Phase 5C safe defaults</h3>
+        <label>Confirmation <input name="confirmation" placeholder="PUSH SAFE DEFAULTS" style={{ minWidth: 260 }} /></label>
+        <p>Pushes production-safe Phase 5C runtime flags only. It does not enable model calls, embeddings, semantic retrieval, public reads/writes, or auto-capture.</p>
+        <button type="submit">Push safe defaults</button>
+      </form>
+
+      <form method="post" action="/api/admin/env/smoke/phase5c" style={{ border: "1px solid #ddd", padding: 12 }}>
+        <h3>Run Phase 5C smoke test</h3>
+        <input type="hidden" name="baseUrl" value="https://pandorasmemory.vercel.app" />
+        <p>Runs server-side health, compaction page, missing/wrong token, and authenticated dry-run checks if the current deployment has a server-side job token configured.</p>
+        <button type="submit">Run smoke test</button>
+      </form>
+    </div></section>
+
+    <section><h2>Env catalog</h2><table><thead><tr><th>Key</th><th>Classification</th><th>Required</th><th>Target</th><th>Provider status</th><th>Fingerprint</th><th>Safe default</th><th>Source files</th></tr></thead><tbody>{status.catalog.map((item) => <tr key={item.key}><td><code>{item.key}</code></td><td>{item.classificationSuggestion}</td><td>{String(item.requiredSuggestion)}</td><td>{item.providerTargetSuggestion}</td><td>{item.present ? "present" : "missing_or_unknown"}</td><td>{item.fingerprint ?? "—"}</td><td>{item.safeDefault ?? "—"}</td><td>{item.sources.slice(0, 3).map((s) => `${s.file}:${s.line}`).join(", ")}</td></tr>)}</tbody></table></section>
+
+    <section><h2>Presets</h2><h3>phase5c_safe_production</h3><pre>{JSON.stringify(PHASE5C_SAFE_PRODUCTION, null, 2)}</pre><h3>phase5a_queue_safe</h3><pre>{JSON.stringify(PHASE5A_QUEUE_SAFE, null, 2)}</pre></section>
+  </main>;
+}
