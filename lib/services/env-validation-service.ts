@@ -6,7 +6,8 @@ const KEY_RE = /(^|_)KEY$/;
 export function classifyEnvKey(key: string): EnvClassification {
   if (key.startsWith("NEXT_PUBLIC_")) return "public_safe";
   if (key === "PANDORA_MEMORY_AUTOPILOT") return "mode";
-  if (key.startsWith("PANDORA_ENABLE_") || key.startsWith("PANDORA_AUTO_") || key === "PANDORA_SENSITIVE_MEMORY_REQUIRES_APPROVAL") return "runtime_flag";
+  if (key.startsWith("PANDORA_ENABLE_") || key.startsWith("PANDORA_AUTO_") || key.startsWith("PANDORA_REDACT_BEFORE_") || key.startsWith("PANDORA_AUDIT_") || key === "PANDORA_SENSITIVE_MEMORY_REQUIRES_APPROVAL" || key === "PANDORA_ENV_BROKER_ENABLED") return "runtime_flag";
+  if (key.includes("MODEL") || key.endsWith("_DIMENSIONS") || key.endsWith("_MAX_ITEMS") || key.endsWith("_WEIGHT") || key.endsWith("_MIN_SCORE") || key.endsWith("_TIMEOUT_MS") || key.endsWith("_AT") || key.endsWith("_STATUS") || key.endsWith("_REVIEWER") || key.endsWith("_SHA") || key.endsWith("_ORIGINS") || key.endsWith("_SCOPES")) return "public_safe";
   if (key === "PANDORA_INTERNAL_JOB_TOKEN") return "generated_token";
   if (key.includes("VERCEL_API_TOKEN") || key.includes("MANAGEMENT_TOKEN")) return "provider_token";
   if (key === "DATABASE_URL" || key === "DIRECT_URL" || key.endsWith("DATABASE_URL")) return "database_url";

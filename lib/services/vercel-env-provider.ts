@@ -35,9 +35,21 @@ export async function pushVercelEnv(input: VercelEnvPushInput, token = process.e
   return { ok: true, providerEnvId: typeof body.id === "string" ? body.id : undefined, redeployRequired: true, target };
 }
 
+export type VercelEnvStatusItem = { key: string; target?: string[]; id?: string; createdAt?: number; updatedAt?: number; type?: string };
+
 export async function listVercelEnvStatus(projectId: string, teamId: string, token = process.env.PANDORA_VERCEL_API_TOKEN) {
   if (!token) return { ok: false as const, code: "blocked_missing_provider_token" };
   const res = await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/env?teamId=${encodeURIComponent(teamId)}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) return { ok: false as const, code: "provider_error" };
-  return { ok: true as const, envs: await res.json() };
+  const body = await res.json().catch(() => ({}));
+  const rawEnvs = Array.isArray(body?.envs) ? body.envs : [];
+  const envs: VercelEnvStatusItem[] = rawEnvs.map((item: { key?: unknown; target?: unknown; id?: unknown; createdAt?: unknown; updatedAt?: unknown; type?: unknown }) => ({
+    key: typeof item.key === "string" ? item.key : "",
+    target: Array.isArray(item.target) ? item.target.filter((target): target is string => typeof target === "string") : undefined,
+    id: typeof item.id === "string" ? item.id : undefined,
+    createdAt: typeof item.createdAt === "number" ? item.createdAt : undefined,
+    updatedAt: typeof item.updatedAt === "number" ? item.updatedAt : undefined,
+    type: typeof item.type === "string" ? item.type : undefined,
+  })).filter((item: VercelEnvStatusItem) => item.key);
+  return { ok: true as const, envs };
 }

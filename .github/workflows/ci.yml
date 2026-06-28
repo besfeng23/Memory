@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Env Broker policy
+        run: npm run env:policy
+
       - name: Typecheck
         run: npm run typecheck
 

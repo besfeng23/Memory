@@ -1,7 +1,10 @@
 import { getEnvBrokerStatus, PHASE5A_QUEUE_SAFE, PHASE5C_SAFE_PRODUCTION } from "@/lib/services/env-broker-service";
+import { buildEnvDriftReport } from "@/lib/services/env-drift-service";
 
-export default function AdminEnvPage() {
+export default async function AdminEnvPage() {
   const status = getEnvBrokerStatus();
+  const drift = await buildEnvDriftReport();
+  const driftColor = drift.severity === "green" ? "#0a7f27" : drift.severity === "yellow" ? "#9a6700" : "#b42318";
   return <main style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
     <h1>Pandora Env Broker</h1>
     <p>Internal environment-variable control plane. Raw secret values are never rendered; only status and redacted fingerprints appear.</p>
@@ -14,6 +17,23 @@ export default function AdminEnvPage() {
       <li>Unknown keys: {status.totals.unknown}</li>
       <li>Broker enabled: {String(status.brokerEnabled)}</li>
     </ul></section>
+
+    <section style={{ border: `2px solid ${driftColor}`, padding: 12 }}>
+      <h2>Drift guard: <span style={{ color: driftColor }}>{drift.severity.toUpperCase()}</span></h2>
+      <p>GREEN means catalog and provider are aligned. YELLOW means unknown or unmanaged provider envs need review. RED means required envs are missing or unsafe public-secret names exist.</p>
+      <ul>
+        <li>Missing in provider: {drift.missingInProvider.join(", ") || "none"}</li>
+        <li>Unmanaged provider envs: {drift.unmanagedProviderEnvs.join(", ") || "none"}</li>
+        <li>Known but unclassified: {drift.knownButUnclassified.join(", ") || "none"}</li>
+        <li>Unsafe public-secret naming: {drift.unsafePublicSecretNaming.join(", ") || "none"}</li>
+        <li>Stale fingerprints: {drift.staleFingerprints.join(", ") || "none"}</li>
+        <li>Needs redeploy: {drift.needsRedeploy.join(", ") || "none"}</li>
+      </ul>
+      {(!drift.brokerEnabled || !drift.providerTokenConfigured || drift.missingInProvider.length > 0 || drift.needsRedeploy.length > 0 || drift.providerError) && <p role="alert"><strong>Runtime warning:</strong> {!drift.brokerEnabled ? " PANDORA_ENV_BROKER_ENABLED is false." : ""}{!drift.providerTokenConfigured ? " PANDORA_VERCEL_API_TOKEN is missing." : ""}{drift.missingInProvider.length ? " Required envs are missing." : ""}{drift.providerError ? ` Provider drift check blocked: ${drift.providerError}.` : ""}{drift.needsRedeploy.length ? " Deployment required after env push." : ""}</p>}
+      <form method="post" action="/api/admin/env/drift/check"><button type="submit">Check drift</button></form>
+      <form method="post" action="/api/admin/env/drift/resolve"><input type="hidden" name="action" value="push-safe-defaults" /><input type="hidden" name="confirmation" value="RESOLVE ENV DRIFT" /><button type="submit">Push required safe defaults</button></form>
+      <form method="post" action="/api/admin/env/drift/resolve"><input type="hidden" name="action" value="generate-missing-secrets" /><input type="hidden" name="confirmation" value="RESOLVE ENV DRIFT" /><button type="submit">Generate/rotate missing generated secrets</button></form>
+    </section>
 
     <section><h2>Projects</h2><table><tbody><tr><th>Project</th><th>Provider</th><th>Provider project ID</th><th>Production URL</th><th>Provider token status</th></tr><tr><td>{status.project.displayName}</td><td>{status.project.provider}</td><td>{status.project.providerProjectId}</td><td>{status.project.productionUrl}</td><td>{process.env.PANDORA_VERCEL_API_TOKEN ? "available" : "blocked_missing_provider_token"}</td></tr></tbody></table></section>
 

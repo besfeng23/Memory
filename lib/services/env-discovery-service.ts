@@ -6,7 +6,7 @@ import { resolvePandoraRuntimeSafetyConfig } from "@/lib/config/pandora-runtime-
 export type EnvDiscoverySource = { file: string; line: number };
 export type EnvDiscoveryItem = { key: string; sources: EnvDiscoverySource[]; classificationSuggestion: EnvClassification; defaultSuggestion?: string; requiredSuggestion: boolean; providerTargetSuggestion: "vercel" | "github" | "supabase" | "unknown" };
 const DEFAULT_SCAN = ["app", "lib", "docs", ".github/workflows", "README.md", "vercel.json", "next.config.js", "next.config.mjs", "next.config.ts", "supabase/config.toml"];
-const KEY_RE = /(?:process\.env\.([A-Z][A-Z0-9_]+)|process\.env\[['"]([A-Z][A-Z0-9_]+)['"]\]|(?:^|[^A-Z0-9_])([A-Z][A-Z0-9_]{2,})(?==|\b))/g;
+const KEY_RE = /(?:process\.env\.([A-Z][A-Z0-9_]+)|process\.env\[['"]([A-Z][A-Z0-9_]+)['"]\]|(?:^|[^A-Z0-9_])((?:PANDORA_|NEXT_PUBLIC_|SUPABASE_|OPENAI_|DATABASE_URL|DIRECT_URL|AUTH_|NEXTAUTH_|SESSION_|COOKIE_|VERCEL_)[A-Z0-9_]*)(?==))/g;
 
 const knownDefaults: Record<string, string> = Object.fromEntries(Object.values(resolvePandoraRuntimeSafetyConfig({}).gates).map((gate) => [gate.envVar, gate.envVar === "PANDORA_SENSITIVE_MEMORY_REQUIRES_APPROVAL" ? "true" : "false"]));
 knownDefaults.PANDORA_MEMORY_AUTOPILOT = "off";
@@ -30,5 +30,5 @@ function scanPath(abs: string, rel: string, map: Map<string, EnvDiscoverySource[
   if (stat.isDirectory()) { for (const name of readdirSync(abs)) { if (["node_modules", ".next", ".git", ".env", ".vercel", ".supabase", "secrets"].includes(name)) continue; scanPath(join(abs, name), `${rel}/${name}`, map); } return; }
   if (!/\.(ts|tsx|js|mjs|json|md|toml|yml|yaml|example)$/.test(abs)) return;
   const lines = readFileSync(abs, "utf8").split(/\r?\n/);
-  lines.forEach((line, index) => { for (const m of line.matchAll(KEY_RE)) { const key = m[1] || m[2] || m[3]; if (key && /^[A-Z][A-Z0-9_]+$/.test(key)) add(map, key, { file: rel, line: index + 1 }); } });
+  lines.forEach((line, index) => { for (const m of line.matchAll(KEY_RE)) { const key = m[1] || m[2] || m[3]; if (key && /^[A-Z][A-Z0-9_]+$/.test(key) && !["PANDORA_VERCEL_PROJECT", "PANDORA_AUTOPILOT_VALUES"].includes(key)) add(map, key, { file: rel, line: index + 1 }); } });
 }

@@ -19,7 +19,8 @@
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
     "db:push": "supabase db push --dry-run",
     "db:pull": "supabase db pull --schema public",
-    "verify:first-reviewed-memory-fixture": "npx --yes tsx scripts/verify-first-reviewed-memory-fixture.ts"
+    "verify:first-reviewed-memory-fixture": "npx --yes tsx scripts/verify-first-reviewed-memory-fixture.ts",
+    "env:policy": "npx --yes tsx scripts/check-env-policy.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
