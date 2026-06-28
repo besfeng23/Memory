@@ -44,15 +44,15 @@ describe("Pandora Env Broker", () => {
     if (!result.ok) expect(result.code).toBe("blocked_missing_provider_token");
   });
   it("defaults Vercel env pushes to production only", async () => {
-    let requestBody: any = null;
+    let requestBody: Record<string, unknown> | null = null;
     global.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
-      requestBody = JSON.parse(String(init?.body ?? "{}"));
+      requestBody = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
       return Response.json({ id: "env_test" });
     }) as typeof fetch;
     const result = await pushVercelEnv({ projectId: "p", teamId: "t", key: "PANDORA_ENABLE_MEMORY_DISTILLATION", value: "true" }, "vercel-token");
     global.fetch = originalFetch;
     expect(result.ok).toBe(true);
-    expect(requestBody.target).toEqual(["production"]);
+    expect(requestBody?.target).toEqual(["production"]);
     expect(JSON.stringify(result)).not.toContain("vercel-token");
   });
   it("does not claim authenticated dry-run without a managed token", async () => {
