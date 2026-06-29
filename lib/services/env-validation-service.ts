@@ -7,7 +7,7 @@ export function classifyEnvKey(key: string): EnvClassification {
   if (key.startsWith("NEXT_PUBLIC_")) return "public_safe";
   if (key === "PANDORA_MEMORY_AUTOPILOT") return "mode";
   if (key.startsWith("PANDORA_ENABLE_") || key.startsWith("PANDORA_AUTO_") || key.startsWith("PANDORA_REDACT_BEFORE_") || key.startsWith("PANDORA_AUDIT_") || key === "PANDORA_SENSITIVE_MEMORY_REQUIRES_APPROVAL" || key === "PANDORA_ENV_BROKER_ENABLED") return "runtime_flag";
-  if (key.includes("MODEL") || key.endsWith("_DIMENSIONS") || key.endsWith("_MAX_ITEMS") || key.endsWith("_WEIGHT") || key.endsWith("_MIN_SCORE") || key.endsWith("_TIMEOUT_MS") || key.endsWith("_AT") || key.endsWith("_STATUS") || key.endsWith("_REVIEWER") || key.endsWith("_SHA") || key.endsWith("_ORIGINS") || key.endsWith("_SCOPES")) return "public_safe";
+  if (key.includes("MODEL") || key.endsWith("_DIMENSIONS") || key.endsWith("_MAX_ITEMS") || key.endsWith("_WEIGHT") || key.endsWith("_MIN_SCORE") || key.endsWith("_TIMEOUT_MS") || key.endsWith("_AT") || key.endsWith("_STATUS") || key.endsWith("_REVIEWER") || key.endsWith("_SHA") || key.endsWith("_ORIGINS") || key.endsWith("_SCOPES") || key.endsWith("_VERSION") || key.endsWith("_MODE")) return "public_safe";
   // Vercel/Supabase provider-managed integration vars. Connection strings and passwords stay secret-classified; build metadata is known-safe.
   if (/^VERCEL_GIT_/.test(key)) return "public_safe";
   if (key.startsWith("POSTGRES_")) return /URL/.test(key) ? "database_url" : key.includes("PASSWORD") ? "secret" : "public_safe";

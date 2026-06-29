@@ -11,11 +11,18 @@ const KEY_RE = /(?:process\.env\.([A-Z][A-Z0-9_]+)|process\.env\[['"]([A-Z][A-Z0
 const knownDefaults: Record<string, string> = Object.fromEntries(Object.values(resolvePandoraRuntimeSafetyConfig({}).gates).map((gate) => [gate.envVar, gate.envVar === "PANDORA_SENSITIVE_MEMORY_REQUIRES_APPROVAL" ? "true" : "false"]));
 knownDefaults.PANDORA_MEMORY_AUTOPILOT = "off";
 knownDefaults.PANDORA_ENV_BROKER_ENABLED = "true";
+// Phase 5D optional flags, safe-by-default. Optional (never required provider envs).
+knownDefaults.PANDORA_ENABLE_MEMORY_USEFULNESS_SCORING = "false";
+knownDefaults.PANDORA_ENABLE_MEMORY_PRUNING = "false";
+knownDefaults.PANDORA_MEMORY_PRUNING_MODE = "review_only";
+knownDefaults.PANDORA_MEMORY_SCORING_VERSION = "phase-5d-v1";
 
 const mustRegister = [
   "PANDORA_INTERNAL_JOB_TOKEN", "PANDORA_ENV_BROKER_ENABLED", "PANDORA_VERCEL_API_TOKEN", "PANDORA_ENV_VAULT_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY", "DATABASE_URL", "DIRECT_URL", "OPENAI_API_KEY", "OPENAI_PROJECT_ID", "OPENAI_ORG_ID", "NEXTAUTH_SECRET", "AUTH_SECRET", "NEXTAUTH_URL", "AUTH_URL", "SESSION_SECRET", "COOKIE_SECRET",
   // Vercel<>Supabase integration vars provisioned by the provider. Acknowledged as managed so they stop surfacing as unmanaged provider drift.
   "POSTGRES_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING", "POSTGRES_USER", "POSTGRES_HOST", "POSTGRES_PASSWORD", "POSTGRES_DATABASE", "SUPABASE_JWT_SECRET", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY",
+  // Phase 5D optional flags. Catalogued as managed + safe-defaulted, but never required provider envs (see REQUIRED_PROVIDER_KEYS), so an unset value never triggers RED drift.
+  "PANDORA_ENABLE_MEMORY_USEFULNESS_SCORING", "PANDORA_ENABLE_MEMORY_PRUNING", "PANDORA_MEMORY_PRUNING_MODE", "PANDORA_MEMORY_SCORING_VERSION",
 ];
 
 // Keys that production genuinely cannot run safely without an explicit provider value,
