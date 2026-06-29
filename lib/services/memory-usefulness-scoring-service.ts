@@ -74,11 +74,15 @@ function normalizedText(memory: ScoreableMemory): string {
 
 export function classifyContent(memory: ScoreableMemory): UsefulnessCategory {
   const raw = String(memory.text ?? "");
+  // Structured type checks run BEFORE the blank-text fast path so a typed but empty-text
+  // memory (e.g. a redacted blocked_secret candidate) is still classified correctly.
+  if (memory.memory_type === "secret_or_credential") return "secret";
+  if (memory.memory_type === "preference") return "durable_preference";
   if (!raw.trim()) return "general";
   // Secrets/credentials always win and are blocked.
-  if (detectSecrets(raw).detected || memory.memory_type === "secret_or_credential") return "secret";
+  if (detectSecrets(raw).detected) return "secret";
   const text = raw.toLowerCase();
-  if (memory.memory_type === "preference" || includesAny(text, DURABLE_PREFERENCE)) return "durable_preference";
+  if (includesAny(text, DURABLE_PREFERENCE)) return "durable_preference";
   if (includesAny(text, PRODUCTION_FACT)) return "production_fact";
   if (includesAny(text, TASK_STATE)) return "task_state";
   if (includesAny(text, TRANSIENT) || UUID_RE.test(raw)) return "transient";

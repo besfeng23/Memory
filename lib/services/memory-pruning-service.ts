@@ -76,9 +76,14 @@ export function evaluatePruningRecommendation(memory: ScoreableMemoryRecord, pee
   const subject = projectSubject(memory);
   const isOperational = classifyContent(memory) === "production_fact";
   if (isOperational) {
-    const newer = sameNamespacePeers.find(
-      (p) => classifyContent(p) === "production_fact" && projectSubject(p) === subject && String(p.created_at ?? "") > String(memory.created_at ?? ""),
-    );
+    // Compare real timestamps, not strings, so a null/invalid created_at can never "win".
+    const createdAt = Date.parse(String(memory.created_at ?? ""));
+    const newer = Number.isFinite(createdAt)
+      ? sameNamespacePeers.find((p) => {
+          const peerCreatedAt = Date.parse(String(p.created_at ?? ""));
+          return classifyContent(p) === "production_fact" && projectSubject(p) === subject && Number.isFinite(peerCreatedAt) && peerCreatedAt > createdAt;
+        })
+      : undefined;
     if (newer) {
       return { ...base, category: "superseded", recommendation: "supersede", reason: `Newer verified status for "${subject}" supersedes this operational memory.`, superseded_by_memory_id: newer.id ?? null };
     }
@@ -226,23 +231,32 @@ export async function runPhase5dMaintenance(client: MemoryBridgeDbClient, scope:
     base.candidates = candidates.map((c) => ({ memory_id: c.memory_id ?? null, category: c.category, recommendation: c.recommendation, reason: c.reason, stale_status: c.stale_status, retrieval_weight: c.retrieval_weight }));
 
     if (!dryRun && config.usefulnessScoringEnabled) {
+      const eventById = new Map(events.map((e) => [e.id, e]));
+      const scoredAt = new Date(now).toISOString();
       for (const memory of scoreables) {
         if (!memory.id) continue;
         const breakdown = computeRetrievalWeight(memory, now, config.scoringVersion);
         const stale = classifyStaleness(memory, now);
-        const upd = await client
-          .from("memory_events")
-          .update({ usefulness_score: breakdown.usefulness_score, confidence_score: breakdown.confidence_score, freshness_score: breakdown.freshness_score, contradiction_score: breakdown.contradiction_score, retrieval_weight: breakdown.retrieval_weight, stale_status: stale, scoring_version: config.scoringVersion, scored_at: new Date(now).toISOString() })
-          .eq("id", memory.id)
-          .eq("user_id", scope.user_id)
-          .eq("namespace", scope.namespace)
-          .select("*")
-          .single();
-        if (!upd.error) base.counts.persisted_scores += 1;
-        else base.warnings.push(`score_write_skipped:${memory.id}`);
+        const after = { usefulness_score: breakdown.usefulness_score, confidence_score: breakdown.confidence_score, freshness_score: breakdown.freshness_score, contradiction_score: breakdown.contradiction_score, retrieval_weight: breakdown.retrieval_weight, stale_status: stale, scoring_version: config.scoringVersion, scored_at: scoredAt };
+        const upd = await client.from("memory_events").update(after).eq("id", memory.id).eq("user_id", scope.user_id).eq("namespace", scope.namespace).select("*").single();
+        if (upd.error) { base.warnings.push(`score_write_skipped:${memory.id}`); continue; }
+        base.counts.persisted_scores += 1;
+        // Append an audit trail so persisted score changes are explainable in the proof flow.
+        // (memory_patches is FK-bound to memory_items, so audit_logs is the correct table for memory_events.)
+        const prior = eventById.get(memory.id);
+        const before = { usefulness_score: prior?.usefulness_score ?? null, retrieval_weight: prior?.retrieval_weight ?? null, stale_status: prior?.stale_status ?? null, scoring_version: prior?.scoring_version ?? null, scored_at: prior?.scored_at ?? null };
+        try {
+          await client.from("audit_logs").insert({ user_id: scope.user_id, namespace: scope.namespace, action: "memory_event_scored", table_name: "memory_events", record_id: memory.id, before_snapshot: before, after_snapshot: after, metadata: { phase: "5D", scoring_version: config.scoringVersion, appendOnly: true } }).select("*").single();
+        } catch { base.warnings.push(`score_audit_skipped:${memory.id}`); }
       }
       if (config.pruningEnabled) {
         for (const candidate of candidates) {
+          // Idempotent: skip if an open candidate already exists for this memory/category, so
+          // re-running the job (retry/schedule) never inflates the review queue.
+          if (candidate.memory_id) {
+            const existing = await (client.from("memory_pruning_candidates").select("id").eq("user_id", scope.user_id).eq("namespace", scope.namespace).eq("memory_id", candidate.memory_id).eq("pruning_category", candidate.category).eq("status", "open").limit(1) as unknown as Promise<{ data: any[] | null; error: { message: string } | null }>);
+            if ((existing.data ?? []).length) { base.warnings.push("pruning_candidate_already_open"); continue; }
+          }
           const ins = await client
             .from("memory_pruning_candidates")
             .insert({ user_id: scope.user_id, namespace: scope.namespace, memory_id: candidate.memory_id, pruning_category: candidate.category, recommendation: candidate.recommendation, reason: candidate.reason, stale_status: candidate.stale_status, retrieval_weight: candidate.retrieval_weight, superseded_by_memory_id: candidate.superseded_by_memory_id ?? null, scoring_version: config.scoringVersion, status: "open" })

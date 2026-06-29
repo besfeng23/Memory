@@ -19,7 +19,7 @@ const NOW = Date.parse("2026-06-29T00:00:00.000Z");
 
 // In-memory bridge client matching the Phase 5C test mock shape (thenable list queries).
 function client(seed: Partial<Record<string, any[]>> = {}) {
-  const rows: Record<string, any[]> = { memory_events: [], memory_capture_candidates: [], memory_feedback_events: [], memory_profiles: [], memory_open_loops: [], memory_context_packs: [], memory_pruning_candidates: [], ...seed };
+  const rows: Record<string, any[]> = { memory_events: [], memory_capture_candidates: [], memory_feedback_events: [], memory_profiles: [], memory_open_loops: [], memory_context_packs: [], memory_pruning_candidates: [], audit_logs: [], ...seed };
   return {
     rows,
     from(table: string) {
@@ -153,13 +153,17 @@ describe("Phase 5D confidence-weighted retrieval", () => {
   });
 
   it("preserves deterministic safety gates (semantic/embeddings/model stay disabled)", async () => {
-    const prev = { s: process.env.PANDORA_ENABLE_SEMANTIC_RETRIEVAL, e: process.env.PANDORA_ENABLE_EMBEDDINGS, m: process.env.PANDORA_ENABLE_MODEL_CALLS };
-    delete process.env.PANDORA_ENABLE_SEMANTIC_RETRIEVAL; delete process.env.PANDORA_ENABLE_EMBEDDINGS; delete process.env.PANDORA_ENABLE_MODEL_CALLS;
-    const c = client({ memory_events: [{ id: "e1", user_id: "u1", namespace: "real_life", extracted_summary: "fact", status: "captured", created_at: "2026-06-28T00:00:00Z" }] });
-    const ctx = await getHybridMemoryContext(c, { user_id: "u1", namespace: "real_life" });
-    expect(ctx.semantic_matches).toEqual([]);
-    expect(ctx.warnings).toEqual(expect.arrayContaining(["semantic_retrieval_disabled", "embeddings_disabled", "model_calls_disabled"]));
-    process.env.PANDORA_ENABLE_SEMANTIC_RETRIEVAL = prev.s; process.env.PANDORA_ENABLE_EMBEDDINGS = prev.e; process.env.PANDORA_ENABLE_MODEL_CALLS = prev.m;
+    const keys = ["PANDORA_ENABLE_SEMANTIC_RETRIEVAL", "PANDORA_ENABLE_EMBEDDINGS", "PANDORA_ENABLE_MODEL_CALLS"] as const;
+    const prev = keys.map((k) => [k, Object.prototype.hasOwnProperty.call(process.env, k), process.env[k]] as const);
+    try {
+      for (const k of keys) delete process.env[k];
+      const c = client({ memory_events: [{ id: "e1", user_id: "u1", namespace: "real_life", extracted_summary: "fact", status: "captured", created_at: "2026-06-28T00:00:00Z" }] });
+      const ctx = await getHybridMemoryContext(c, { user_id: "u1", namespace: "real_life" });
+      expect(ctx.semantic_matches).toEqual([]);
+      expect(ctx.warnings).toEqual(expect.arrayContaining(["semantic_retrieval_disabled", "embeddings_disabled", "model_calls_disabled"]));
+    } finally {
+      for (const [k, existed, value] of prev) { if (existed) process.env[k] = value as string; else delete process.env[k]; }
+    }
   });
 });
 
@@ -210,45 +214,70 @@ describe("Phase 5D maintenance job", () => {
     expect(r.counts.unsafe).toBeGreaterThanOrEqual(1);
   });
 
+  it("writes pruning candidates idempotently across repeated non-dry runs", async () => {
+    const env = { PANDORA_ENABLE_MEMORY_USEFULNESS_SCORING: "true", PANDORA_ENABLE_MEMORY_PRUNING: "true" } as NodeJS.ProcessEnv;
+    const c = client({ memory_events: [{ id: "e1", user_id: "u1", namespace: "real_life", raw_text: "api_key=sk-abcdef0123456789abcdef0123", extracted_summary: "api_key=sk-abcdef0123456789abcdef0123", status: "captured", created_at: "2026-06-28T00:00:00Z" }] });
+    const first = await runPhase5dMaintenance(c, { user_id: "u1", namespace: "real_life", dry_run: false }, env);
+    const second = await runPhase5dMaintenance(c, { user_id: "u1", namespace: "real_life", dry_run: false }, env);
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    const open = c.rows.memory_pruning_candidates.filter((r: any) => r.status === "open");
+    expect(open).toHaveLength(1); // no duplicate open row on re-run
+    expect(open[0].pruning_category).toBe("unsafe");
+    expect(c.rows.audit_logs.some((a: any) => a.action === "memory_event_scored")).toBe(true);
+  });
+
   it("rejects unauthorized job calls", async () => {
     const prev = process.env.PANDORA_INTERNAL_JOB_TOKEN;
     process.env.PANDORA_INTERNAL_JOB_TOKEN = "phase5d-test-token";
-    const route = await import("../app/api/memory/jobs/phase-5d-maintenance/route");
-    const noToken = await route.POST(new Request("http://x", { method: "POST", body: "{}" }) as any);
-    expect(noToken.status).toBe(401);
-    const wrong = await route.POST(new Request("http://x", { method: "POST", headers: { authorization: "Bearer nope" }, body: JSON.stringify({ namespace: "real_life" }) }) as any);
-    expect(wrong.status).toBe(401);
-    process.env.PANDORA_INTERNAL_JOB_TOKEN = prev;
+    try {
+      const route = await import("../app/api/memory/jobs/phase-5d-maintenance/route");
+      const noToken = await route.POST(new Request("http://x", { method: "POST", body: "{}" }) as any);
+      expect(noToken.status).toBe(401);
+      const wrong = await route.POST(new Request("http://x", { method: "POST", headers: { authorization: "Bearer nope" }, body: JSON.stringify({ namespace: "real_life" }) }) as any);
+      expect(wrong.status).toBe(401);
+    } finally {
+      if (prev === undefined) delete process.env.PANDORA_INTERNAL_JOB_TOKEN; else process.env.PANDORA_INTERNAL_JOB_TOKEN = prev;
+    }
   });
 });
 
 describe("Phase 5D routes with mocked backend", () => {
-  it("authorized dry-run returns ok with a redacted, non-secret summary", async () => {
+  it("authorized dry-run returns ok with a redacted, non-secret summary (server-derived user)", async () => {
+    const prevToken = process.env.PANDORA_INTERNAL_JOB_TOKEN;
+    const prevUser = process.env.PANDORA_MEMORY_BRIDGE_USER_ID;
     vi.resetModules();
     vi.doMock("@/lib/supabase/bridge-admin", () => {
       const rows: Record<string, any[]> = { memory_events: [{ id: "e1", user_id: "u1", namespace: "real_life", raw_text: "api_key=sk-abcdef0123456789abcdef0123 Pandora deploy", extracted_summary: "api_key=sk-abcdef0123456789abcdef0123 Pandora deploy", status: "captured", created_at: "2026-06-28T00:00:00.000Z" }], memory_pruning_candidates: [] };
       const make = (table: string) => { const selected = [...(rows[table] ?? [])]; const api: any = { select: () => api, eq: () => api, neq: () => api, order: () => api, limit: () => api, update: () => api, insert: () => api, single: async () => ({ data: selected[0] ?? null, error: null }), then: (resolve: any) => resolve({ data: selected, error: null }) }; return api; };
       return { createSupabaseBridgeAdminClient: () => ({ from: (t: string) => make(t) }) };
     });
-    const prev = process.env.PANDORA_INTERNAL_JOB_TOKEN;
-    process.env.PANDORA_INTERNAL_JOB_TOKEN = "phase5d-test-token";
-    const route = await import("../app/api/memory/jobs/phase-5d-maintenance/route");
-    const res = await route.POST(new Request("http://x", { method: "POST", headers: { authorization: "Bearer phase5d-test-token", "content-type": "application/json" }, body: JSON.stringify({ namespace: "real_life", dryRun: true, user_id: "u1" }) }) as any);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.dry_run).toBe(true);
-    expect(JSON.stringify(body)).not.toContain("sk-abcdef0123456789abcdef0123");
-    process.env.PANDORA_INTERNAL_JOB_TOKEN = prev;
-    vi.doUnmock("@/lib/supabase/bridge-admin");
-    vi.resetModules();
+    try {
+      process.env.PANDORA_INTERNAL_JOB_TOKEN = "phase5d-test-token";
+      process.env.PANDORA_MEMORY_BRIDGE_USER_ID = "u1"; // server-derived identity; body cannot set the user
+      const route = await import("../app/api/memory/jobs/phase-5d-maintenance/route");
+      const res = await route.POST(new Request("http://x", { method: "POST", headers: { authorization: "Bearer phase5d-test-token", "content-type": "application/json" }, body: JSON.stringify({ namespace: "real_life", dryRun: true }) }) as any);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.dry_run).toBe(true);
+      expect(JSON.stringify(body)).not.toContain("sk-abcdef0123456789abcdef0123");
+    } finally {
+      if (prevToken === undefined) delete process.env.PANDORA_INTERNAL_JOB_TOKEN; else process.env.PANDORA_INTERNAL_JOB_TOKEN = prevToken;
+      if (prevUser === undefined) delete process.env.PANDORA_MEMORY_BRIDGE_USER_ID; else process.env.PANDORA_MEMORY_BRIDGE_USER_ID = prevUser;
+      vi.doUnmock("@/lib/supabase/bridge-admin");
+      vi.resetModules();
+    }
   });
 
   it("status route requires the internal job token", async () => {
     const prev = process.env.PANDORA_INTERNAL_JOB_TOKEN;
     process.env.PANDORA_INTERNAL_JOB_TOKEN = "phase5d-test-token";
-    const route = await import("../app/api/admin/memory/phase-5d/status/route");
-    const denied = await route.GET(new Request("http://x") as any);
-    expect(denied.status).toBe(401);
-    process.env.PANDORA_INTERNAL_JOB_TOKEN = prev;
+    try {
+      const route = await import("../app/api/admin/memory/phase-5d/status/route");
+      const denied = await route.GET(new Request("http://x") as any);
+      expect(denied.status).toBe(401);
+    } finally {
+      if (prev === undefined) delete process.env.PANDORA_INTERNAL_JOB_TOKEN; else process.env.PANDORA_INTERNAL_JOB_TOKEN = prev;
+    }
   });
 });

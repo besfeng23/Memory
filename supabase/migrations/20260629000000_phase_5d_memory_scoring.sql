@@ -41,7 +41,7 @@ create table if not exists public.memory_pruning_candidates (
   pruning_category text not null check (pruning_category in ('stale','superseded','low_value','unsafe','duplicate')),
   recommendation text not null check (recommendation in ('keep','archive','supersede','review')),
   reason text,
-  stale_status text,
+  stale_status text check (stale_status in ('active','aging','stale','superseded','archived_candidate')),
   retrieval_weight numeric(5,4),
   superseded_by_memory_id uuid,
   scoring_version text,
@@ -55,3 +55,6 @@ do $$ begin
   create policy "memory_pruning_candidates_user_scoped" on public.memory_pruning_candidates for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 exception when duplicate_object then null; end $$;
 create index if not exists memory_pruning_candidates_user_ns_idx on public.memory_pruning_candidates(user_id, namespace, status, created_at desc);
+-- Keep at most one OPEN candidate per (user, namespace, memory, category) so repeated
+-- maintenance runs cannot inflate the review queue with duplicate open rows.
+create unique index if not exists memory_pruning_candidates_open_unique_idx on public.memory_pruning_candidates(user_id, namespace, memory_id, pruning_category) where status = 'open';

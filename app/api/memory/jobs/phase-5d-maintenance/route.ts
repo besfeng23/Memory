@@ -5,11 +5,13 @@ import { runPhase5dMaintenance } from "@/lib/services/memory-pruning-service";
 
 export const dynamic = "force-dynamic";
 
+// Note: there is intentionally no `user_id` field. This job writes via the bridge admin
+// client, so the target user is always server-derived (PANDORA_MEMORY_BRIDGE_USER_ID) and can
+// never be chosen from the request body — a job-token holder cannot target another account.
 const schema = z.object({
   namespace: z.enum(["real_life", "au"]),
   dryRun: z.boolean().optional(),
   dry_run: z.boolean().optional(),
-  user_id: z.string().min(1).optional(),
 });
 
 function bearer(request: NextRequest): string | undefined {
@@ -28,9 +30,10 @@ export async function POST(request: NextRequest) {
   }
   // Safe-by-default: any run without an explicit dryRun:false stays a non-destructive dry run.
   const dryRun = parsed.data.dryRun ?? parsed.data.dry_run ?? true;
-  const user_id = parsed.data.user_id ?? process.env.PANDORA_MEMORY_BRIDGE_USER_ID;
+  // Server-derived identity only — never trust a client-supplied user id for memory writes.
+  const user_id = process.env.PANDORA_MEMORY_BRIDGE_USER_ID;
   if (!user_id) {
-    return NextResponse.json({ ok: false, blockers: ["job_user_id_required"], next_step: "Send user_id with the internal token or configure PANDORA_MEMORY_BRIDGE_USER_ID." }, { status: 400 });
+    return NextResponse.json({ ok: false, blockers: ["job_user_id_required"], next_step: "Configure PANDORA_MEMORY_BRIDGE_USER_ID (server-derived identity)." }, { status: 400 });
   }
   let client;
   try {
