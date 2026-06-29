@@ -13,13 +13,44 @@ The system stores reviewed, source-backed, patch-backed, audit-backed memory acr
 - Phase 3A receipt-backed readback console: live.
 - Phase 3B database proof: verified externally.
 - Phase 3B full in-app browser: not complete yet.
-- Retrieval, embeddings, GPT Actions, and MCP are not enabled.
+- Phase 5D code and migration may exist in the repo, but scoring is not complete until protected dry-run output is reviewed and controlled non-dry-run is explicitly approved.
+- Retrieval, embeddings, GPT Actions, and MCP must not be claimed as enabled unless verified by deployed route proof, database proof, test output, or merged PR evidence.
 
 ## Prime directive
 
 Be honest about what is shipped versus planned.
 
-Do not claim Phase 3B, retrieval, MCP, embeddings, model calls, or GPT Actions are complete unless there is a deployed route proof, database proof, test output, or merged PR proving it.
+Do not claim Phase 3B, retrieval, MCP, embeddings, model calls, GPT Actions, memory scoring, pruning, or protected production jobs are complete unless there is deployed route proof, database proof, test output, or merged PR evidence proving it.
+
+## Pandora skills pack
+
+Codex must treat `.claude/skills/` as the repo operating procedures, even though they are stored under the Claude skills directory.
+
+Always apply these first:
+
+- `00-pandora-safety-gatekeeper`
+- `01-pandora-secret-redaction`
+- `02-pandora-namespace-isolation`
+
+Apply specialized skills based on the task:
+
+- protected jobs: `03-pandora-protected-job-smoke-test`
+- Supabase migrations: `04-pandora-supabase-migration`
+- RLS/security: `05-pandora-rls-security-review`
+- Env Broker: `06-pandora-env-broker-drift`
+- phase rollout: `07-pandora-phase-rollout-operator`
+- PR review: `08-pandora-pr-review`
+- verification: `09-pandora-ci-build-verifier`
+- Phase 5D scoring: `10-pandora-memory-scoring-auditor`
+- pruning: `11-pandora-pruning-review`
+- retrieval: `12-pandora-retrieval-quality`
+- contradictions: `13-pandora-contradiction-resolution`
+- risky rollout: `14-pandora-rollback`
+- privacy: `15-pandora-privacy-review`
+- review UI: `16-pandora-review-queue-ux`
+- architecture: `17-pandora-architecture-boundary`
+
+The skills are instruction-only. They do not enable runtime behavior, apply migrations, deploy production, or mutate memory.
 
 ## Hard safety rules
 
@@ -35,6 +66,8 @@ Do not enable or add any of these unless explicitly instructed and reviewed:
 - MCP
 - batch memory append
 - automatic memory writes without review
+- `dryRun:false` protected job execution
+- pruning application/archive/delete behavior
 
 ## Memory namespace rules
 
@@ -95,6 +128,22 @@ The preferred implementation is:
 - no public reads
 - no public persistence
 
+## Phase 5D execution rule
+
+Phase 5D is not done merely because the migration exists.
+
+Completion requires:
+
+1. code merged
+2. migration applied
+3. production READY
+4. protected dry-runs completed for `real_life` and `au`
+5. dry-run output reviewed
+6. explicit approval before any `dryRun:false` run
+7. post-run database verification
+
+Pruning remains review-only unless explicitly approved.
+
 ## Development checks
 
 Before marking work complete, run:
@@ -104,6 +153,7 @@ npm run typecheck
 npm run lint
 npm run test
 npm run build
+npm run env:policy
 ```
 
 If a command cannot run due platform limits or unavailable dependencies, report the exact blocker and do not claim completion.
@@ -116,3 +166,4 @@ If a command cannot run due platform limits or unavailable dependencies, report 
 - Do not add broad public API endpoints for memory reads.
 - Do not use service-role keys in browser code.
 - Do not bypass RLS.
+- Do not run production jobs with `dryRun:false` unless the user explicitly approves after reviewing dry-run output.
