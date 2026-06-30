@@ -31,6 +31,8 @@ type OperatingDb = {
   from(table: string): QueryChain;
 };
 
+const IMMUTABLE_UPDATE_FIELDS = new Set(["id", "user_id", "namespace", "created_at", "updated_at"]);
+
 function asOperatingDb(client: unknown): OperatingDb {
   return client as OperatingDb;
 }
@@ -43,6 +45,10 @@ function throwIfError(error: { message: string } | null, action: string) {
   if (error) {
     throw new Error(`${action} failed: ${error.message}`);
   }
+}
+
+function sanitizeUpdate(input: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(input).filter(([key, value]) => value !== undefined && !IMMUTABLE_UPDATE_FIELDS.has(key)));
 }
 
 async function db() {
@@ -71,6 +77,42 @@ export function suggestRawMovementConversion(rawText: string): SuggestedRawMovem
   return { type: "note", reason: "The note should be reviewed before conversion." };
 }
 
+async function supersedeActiveWorkSessions(userId: string, namespace: PandoraNamespace) {
+  const client = await db();
+  const { error } = await client
+    .from("work_sessions")
+    .update({ status: "superseded", ended_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("namespace", namespace)
+    .eq("status", "active");
+
+  throwIfError(error, "supersedeActiveWorkSessions");
+}
+
+async function supersedeActivePriorityLocks(userId: string, namespace: PandoraNamespace) {
+  const client = await db();
+  const { error } = await client
+    .from("priority_locks")
+    .update({ status: "superseded" })
+    .eq("user_id", userId)
+    .eq("namespace", namespace)
+    .eq("status", "active");
+
+  throwIfError(error, "supersedeActivePriorityLocks");
+}
+
+async function supersedeActiveObnas(userId: string, namespace: PandoraNamespace) {
+  const client = await db();
+  const { error } = await client
+    .from("one_best_next_actions")
+    .update({ status: "superseded" })
+    .eq("user_id", userId)
+    .eq("namespace", namespace)
+    .eq("status", "active");
+
+  throwIfError(error, "supersedeActiveObnas");
+}
+
 export async function createWorkSession(input: {
   namespace?: PandoraNamespace;
   project_key?: string;
@@ -79,12 +121,15 @@ export async function createWorkSession(input: {
   next_action?: string;
 }) {
   const userId = await requireCurrentUserId();
+  const namespace = normalizeNamespace(input.namespace);
+  await supersedeActiveWorkSessions(userId, namespace);
+
   const client = await db();
   const { data, error } = await client
     .from("work_sessions")
     .insert({
       user_id: userId,
-      namespace: normalizeNamespace(input.namespace),
+      namespace,
       project_key: input.project_key ?? null,
       declared_goal: input.declared_goal,
       proof_target: input.proof_target ?? null,
@@ -155,7 +200,7 @@ export async function updateWorkSession(id: string, input: Record<string, unknow
   const client = await db();
   const { data, error } = await client
     .from("work_sessions")
-    .update(input)
+    .update(sanitizeUpdate(input))
     .eq("id", id)
     .eq("user_id", userId)
     .select("*")
@@ -176,19 +221,26 @@ export async function createPriorityLock(input: {
   status?: string;
 }) {
   const userId = await requireCurrentUserId();
+  const namespace = normalizeNamespace(input.namespace);
+  const status = input.status ?? "active";
+
+  if (status === "active") {
+    await supersedeActivePriorityLocks(userId, namespace);
+  }
+
   const client = await db();
   const { data, error } = await client
     .from("priority_locks")
     .insert({
       user_id: userId,
-      namespace: normalizeNamespace(input.namespace),
+      namespace,
       project_key: input.project_key,
       locked_outcome: input.locked_outcome,
       proof_target: input.proof_target ?? null,
       allowed_support: input.allowed_support ?? [],
       blocked_distractions: input.blocked_distractions ?? [],
       locked_until: input.locked_until ?? null,
-      status: input.status ?? "active",
+      status,
     })
     .select("*")
     .single();
@@ -219,7 +271,7 @@ export async function updatePriorityLock(id: string, input: Record<string, unkno
   const client = await db();
   const { data, error } = await client
     .from("priority_locks")
-    .update(input)
+    .update(sanitizeUpdate(input))
     .eq("id", id)
     .eq("user_id", userId)
     .select("*")
@@ -275,7 +327,7 @@ export async function updateRawMovementItemStatus(id: string, input: { status?: 
   const client = await db();
   const { data, error } = await client
     .from("raw_movement_items")
-    .update(input)
+    .update(sanitizeUpdate(input as Record<string, unknown>))
     .eq("id", id)
     .eq("user_id", userId)
     .select("*")
@@ -343,7 +395,7 @@ export async function updateDecisionGate(id: string, input: Record<string, unkno
   const client = await db();
   const { data, error } = await client
     .from("decision_gates")
-    .update(input)
+    .update(sanitizeUpdate(input))
     .eq("id", id)
     .eq("user_id", userId)
     .select("*")
@@ -351,19 +403,6 @@ export async function updateDecisionGate(id: string, input: Record<string, unkno
 
   throwIfError(error, "updateDecisionGate");
   return data as DecisionGate;
-}
-
-async function supersedeActiveObnas(namespace: PandoraNamespace) {
-  const userId = await requireCurrentUserId();
-  const client = await db();
-  const { error } = await client
-    .from("one_best_next_actions")
-    .update({ status: "superseded" })
-    .eq("user_id", userId)
-    .eq("namespace", namespace)
-    .eq("status", "active");
-
-  throwIfError(error, "supersedeActiveObnas");
 }
 
 export async function createOneBestNextAction(input: {
@@ -380,7 +419,12 @@ export async function createOneBestNextAction(input: {
 }) {
   const userId = await requireCurrentUserId();
   const namespace = normalizeNamespace(input.namespace);
-  await supersedeActiveObnas(namespace);
+  const status = input.status ?? "active";
+
+  if (status === "active") {
+    await supersedeActiveObnas(userId, namespace);
+  }
+
   const client = await db();
   const { data, error } = await client
     .from("one_best_next_actions")
@@ -395,7 +439,7 @@ export async function createOneBestNextAction(input: {
       timebox_minutes: input.timebox_minutes ?? 25,
       steps: input.steps ?? [],
       evidence_refs: input.evidence_refs ?? {},
-      status: input.status ?? "active",
+      status,
     })
     .select("*")
     .single();
@@ -421,19 +465,23 @@ export async function getActiveOneBestNextAction(namespace: PandoraNamespace = "
   return data as OneBestNextAction | null;
 }
 
-export async function completeOneBestNextAction(id: string) {
+export async function updateOneBestNextAction(id: string, input: Record<string, unknown>) {
   const userId = await requireCurrentUserId();
   const client = await db();
   const { data, error } = await client
     .from("one_best_next_actions")
-    .update({ status: "completed" })
+    .update(sanitizeUpdate(input))
     .eq("id", id)
     .eq("user_id", userId)
     .select("*")
     .single();
 
-  throwIfError(error, "completeOneBestNextAction");
+  throwIfError(error, "updateOneBestNextAction");
   return data as OneBestNextAction;
+}
+
+export async function completeOneBestNextAction(id: string) {
+  return updateOneBestNextAction(id, { status: "completed" });
 }
 
 export async function generateOneBestNextAction(namespace: PandoraNamespace = "real_life") {

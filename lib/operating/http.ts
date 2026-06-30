@@ -15,8 +15,8 @@ export async function withOperatingApi<T>(handler: () => Promise<T>) {
       return NextResponse.json({ ok: false, error: "Invalid request body.", issues: error.flatten() }, { status: 400 });
     }
 
-    const message = error instanceof Error ? error.message : "Unknown error.";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    console.error("Operating API request failed", error);
+    return NextResponse.json({ ok: false, error: "Operating request failed." }, { status: 500 });
   }
 }
 
