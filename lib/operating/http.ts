@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ZodError, type ZodSchema } from "zod";
+import { ZodError, type z } from "zod";
 import { AuthenticationRequiredError } from "@/lib/security/auth";
 
 export async function withOperatingApi<T>(handler: () => Promise<T>) {
@@ -20,7 +20,7 @@ export async function withOperatingApi<T>(handler: () => Promise<T>) {
   }
 }
 
-export async function parseJson<T>(request: Request, schema: ZodSchema<T>): Promise<T> {
+export async function parseJson<TSchema extends z.ZodTypeAny>(request: Request, schema: TSchema): Promise<z.output<TSchema>> {
   const body = await request.json();
   return schema.parse(body);
 }
