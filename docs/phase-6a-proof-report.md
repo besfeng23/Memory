@@ -16,22 +16,31 @@ This branch adds the Phase 6A Operating Brain Foundation: work-session anchor, p
 
 - `/api/operating/work-sessions/current`
 - `/api/operating/work-sessions`
+- `/api/operating/work-sessions/[id]`
+- `/api/operating/work-sessions/[id]/end`
 - `/api/operating/priority-lock`
+- `/api/operating/priority-lock/[id]`
 - `/api/operating/raw-movement`
+- `/api/operating/raw-movement/[itemId]`
 - `/api/operating/decision-gates`
+- `/api/operating/decision-gates/[gateId]`
 - `/api/operating/obna`
 - `/api/operating/obna/generate`
 
-## Local verification commands
+## CI verification
 
-```bash
-npm install
-npm run typecheck
-npm run lint
-npm run test
-npm run build
-npm run db:lint
-```
+GitHub Actions run `28467956363` passed on commit `fd70919dff59e2431d8cac2d20ab2fad6b540497`.
+
+Passed steps:
+
+- Install dependencies
+- Env Broker policy
+- Typecheck
+- Lint
+- Test
+- Build
+
+Vercel deployment also reported success for the same commit.
 
 ## Known limitations
 
@@ -39,4 +48,4 @@ npm run db:lint
 - Raw movement conversion is heuristic-based.
 - Prediction and connector layers are not included.
 - Autonomous actions are not included.
-- Run local verification before merge.
+- This is Phase 6A foundation, not the full autonomous Pandora brain.
