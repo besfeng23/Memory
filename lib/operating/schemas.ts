@@ -3,18 +3,32 @@ import { z } from "zod";
 export const namespaceSchema = z.enum(["real_life", "au"]).default("real_life");
 
 const optionalText = z.string().trim().min(1).optional();
-const textArray = z
-  .union([z.array(z.string().trim().min(1)), z.string()])
-  .optional()
-  .transform((value) => {
-    if (!value) return undefined;
-    if (Array.isArray(value)) return value;
-    return value
+
+function normalizeTextArray(value: unknown) {
+  if (value === undefined || value === null || value === "") return undefined;
+
+  if (Array.isArray(value)) {
+    const items = value
+      .flatMap((item) => (typeof item === "string" ? item.split("\n") : []))
+      .flatMap((line) => line.split(","))
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return items.length ? items : undefined;
+  }
+
+  if (typeof value === "string") {
+    const items = value
       .split("\n")
       .flatMap((line) => line.split(","))
       .map((item) => item.trim())
       .filter(Boolean);
-  });
+    return items.length ? items : undefined;
+  }
+
+  return value;
+}
+
+const textArray = z.preprocess(normalizeTextArray, z.array(z.string().trim().min(1)).optional());
 
 export const createWorkSessionSchema = z.object({
   namespace: namespaceSchema,
