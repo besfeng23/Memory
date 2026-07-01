@@ -11,6 +11,7 @@ export function Topbar() {
       <div className="topbar__actions" aria-label="Project status">
         <StatusBadge status="foundation" />
         <Link className="button-link" href="/operating">Operating</Link>
+        <Link className="button-link" href="/operating/projects">Projects</Link>
         <Link className="button-link" href="/operating/smoke">Smoke</Link>
         <Link className="button-link" href="/api/health">Health</Link>
       </div>
