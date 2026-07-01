@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { getCurrentUser } from "@/lib/security/auth";
 import { getProjectContextSnapshot, listOperatingProjects } from "@/lib/operating/projects";
 import { createOperatingProjectAction } from "./actions";
+import { ProjectPanel } from "./panel";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export default async function OperatingProjectsPage({ searchParams }: Readonly<{
             </SectionCard>
 
             <section className="hero-grid">
-              <SectionCard title="Tasks" description="Project tasks and proof requirements."><div className="record-list">{snapshot.tasks.length ? snapshot.tasks.map((task) => <article className="status-item" key={String(task.id)}><StatusBadge status={task.status === "done" ? "implemented" : "foundation"} /><h3>{String(task.title)}</h3><p>Status: {String(task.status)} · Proof: {task.proof_required ? String(task.proof_required) : "—"}</p></article>) : <Empty message="No project tasks yet." />}</div></SectionCard>
+              <SectionCard title="Tasks" description="Project tasks and proof requirements."><ProjectPanel projectKey={snapshot.project.project_key} /><div className="record-list">{snapshot.tasks.length ? snapshot.tasks.map((task) => <article className="status-item" key={String(task.id)}><StatusBadge status={task.status === "done" ? "implemented" : "foundation"} /><h3>{String(task.title)}</h3><p>Status: {String(task.status)} · Proof: {task.proof_required ? String(task.proof_required) : "—"}</p></article>) : <Empty message="No project tasks yet." />}</div></SectionCard>
               <SectionCard title="Decisions" description="Durable project decisions."><div className="record-list">{snapshot.decisions.length ? snapshot.decisions.map((decision) => <article className="status-item" key={String(decision.id)}><StatusBadge status="implemented" /><h3>{String(decision.decision)}</h3><p>{decision.reason ? String(decision.reason) : "No reason recorded."}</p></article>) : <Empty message="No project decisions yet." />}</div></SectionCard>
             </section>
 
