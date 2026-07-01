@@ -62,3 +62,7 @@ Phase 6B foundation is accepted when:
 - `/operating/projects` loads in production.
 - A signed-in user can create and view a project.
 - Project context snapshot returns all five child sections.
+
+## Preview retry
+
+- 2026-07-01T03:48:00Z — docs-only retry to request a fresh Vercel preview build after build-rate-limit.
