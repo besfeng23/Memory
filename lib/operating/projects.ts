@@ -87,13 +87,28 @@ export async function createOperatingProject(input: {
 }) {
   const userId = await requireCurrentUserId();
   const namespace = normalizeNamespace(input.namespace);
+  const projectKey = normalizeProjectKey(input.project_key);
   const client = await db();
+
+  const existing = await getOperatingProjectByKey(projectKey, namespace);
+  if (existing) {
+    const updateInput = sanitizeUpdate({
+      title: input.title,
+      purpose: input.purpose ?? existing.purpose,
+      proof_target: input.proof_target ?? existing.proof_target,
+      current_phase: input.current_phase ?? existing.current_phase,
+      priority: input.priority ?? existing.priority,
+      status: input.status ?? existing.status,
+    });
+    return updateOperatingProject(projectKey, updateInput, namespace);
+  }
+
   const { data, error } = await client
     .from("operating_projects")
     .insert({
       user_id: userId,
       namespace,
-      project_key: normalizeProjectKey(input.project_key),
+      project_key: projectKey,
       title: input.title,
       purpose: input.purpose ?? null,
       proof_target: input.proof_target ?? null,
