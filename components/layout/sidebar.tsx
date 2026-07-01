@@ -2,7 +2,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { navItems } from "./nav-items";
 
-const groups = ["Core", "AU / Story", "Real-Life", "Operations"] as const;
+const groups = ["Core", "Operating", "AU / Story", "Real-Life", "Operations"] as const;
 
 export function Sidebar() {
   return (
