@@ -22,8 +22,6 @@ export const navItems: NavItem[] = [
   { label: "Real-Life People", href: "/real/people", status: "planned", group: "Real-Life" },
   { label: "Business / Deal Memory", href: "/real/business", status: "planned", group: "Real-Life" },
   { label: "Risks and Promises", href: "/real/risks-promises", status: "planned", group: "Real-Life" },
-  { label: "Operating Cockpit", href: "/operating", status: "foundation", group: "Operations" },
-  { label: "Operating Smoke", href: "/operating/smoke", status: "implemented", group: "Operations" },
   { label: "Audit Logs", href: "/audit", status: "planned", group: "Operations" },
   { label: "Settings", href: "/settings", status: "planned", group: "Operations" },
   { label: "API / Integrations", href: "/integrations", status: "planned", group: "Operations" },
