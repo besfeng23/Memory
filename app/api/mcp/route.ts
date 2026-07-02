@@ -5,6 +5,7 @@ import { resolvePandoraMcpPrincipal } from "@/lib/services/mcp-auth";
 import { pandoraMcpPublicOrigin } from "@/lib/services/mcp-oauth";
 import { createPandoraMcpServer } from "@/lib/services/pandora-mcp-server";
 import type { MemoryBridgeDbClient } from "@/lib/services/memory-bridge-service";
+import { getPandoraMcpDbKey, getPandoraSupabaseUrl } from "@/lib/services/pandora-mcp-env";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,7 +28,11 @@ function jsonError(failure: Exclude<ReturnType<typeof resolvePandoraMcpPrincipal
 }
 
 function createMcpClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.PANDORA_MCP_DB_KEY ?? "", { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { "x-pandora-bridge": "phase-4b-mcp" } } }) as unknown as MemoryBridgeDbClient;
+  const url = getPandoraSupabaseUrl();
+  if (!url.ok) throw new Error(url.message);
+  const dbKey = getPandoraMcpDbKey();
+  if (!dbKey.ok) throw new Error(dbKey.message);
+  return createClient(url.value, dbKey.value, { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { "x-pandora-bridge": "phase-4b-mcp", "x-pandora-db-key-env": dbKey.envVar } } }) as unknown as MemoryBridgeDbClient;
 }
 
 async function handle(request: Request) {

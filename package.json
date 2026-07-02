@@ -20,7 +20,9 @@
     "db:push": "supabase db push --dry-run",
     "db:pull": "supabase db pull --schema public",
     "verify:first-reviewed-memory-fixture": "npx --yes tsx scripts/verify-first-reviewed-memory-fixture.ts",
-    "env:policy": "npx --yes tsx scripts/check-env-policy.ts"
+    "env:policy": "npx --yes tsx scripts/check-env-policy.ts",
+    "memory:smoke": "npx --yes tsx scripts/memory-smoke.ts",
+    "memory:diagnostics": "npx --yes tsx scripts/memory-smoke.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

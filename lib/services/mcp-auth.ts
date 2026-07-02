@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { verifyPandoraMcpOAuthAccessToken } from "@/lib/services/mcp-oauth";
+import { getPandoraMcpBearerSecret, getPandoraMcpDbKey } from "@/lib/services/pandora-mcp-env";
 
 export type PandoraMcpPrincipal =
   | { ok: true; authType: "mcp_bearer_token" | "mcp_oauth_access_token"; userId: string }
@@ -21,18 +22,21 @@ function safeEqual(a: string, b: string) {
 
 export function resolvePandoraMcpPrincipal(request: Request, env: Partial<NodeJS.ProcessEnv> = process.env): PandoraMcpPrincipal {
   if (env.PANDORA_ENABLE_MCP !== "true") return { ok: false, status: 403, code: "mcp_disabled", message: "Pandora MCP is disabled." };
-  const configuredToken = env.PANDORA_MCP_TOKEN;
+  const configuredToken = getPandoraMcpBearerSecret(env);
   const suppliedToken = bearerToken(request);
-  if (!configuredToken || !suppliedToken) return { ok: false, status: 401, code: "mcp_token_missing", message: "MCP bearer token is required." };
-  if (safeEqual(suppliedToken, configuredToken)) {
-    if (!env.PANDORA_MCP_USER_ID) return { ok: false, status: 403, code: "mcp_user_id_missing", message: "Pandora MCP user id is not configured." };
-    if (!env.PANDORA_MCP_DB_KEY) return { ok: false, status: 403, code: "mcp_db_key_missing", message: "Pandora MCP database key is not configured." };
+  if (!configuredToken.ok) return { ok: false, status: 403, code: "mcp_token_env_missing", message: configuredToken.message };
+  if (!suppliedToken) return { ok: false, status: 401, code: "mcp_token_missing", message: "MCP bearer token is required." };
+  if (safeEqual(suppliedToken, configuredToken.value)) {
+    if (!env.PANDORA_MCP_USER_ID) return { ok: false, status: 403, code: "mcp_user_id_missing", message: "Missing server env: PANDORA_MCP_USER_ID" };
+    const dbKey = getPandoraMcpDbKey(env);
+    if (!dbKey.ok) return { ok: false, status: 403, code: "mcp_db_key_missing", message: dbKey.message };
     return { ok: true, authType: "mcp_bearer_token", userId: env.PANDORA_MCP_USER_ID };
   }
   const oauth = verifyPandoraMcpOAuthAccessToken(suppliedToken, env);
   if (!oauth.ok) return { ok: false, status: 401, code: "mcp_token_invalid", message: "MCP bearer token is invalid." };
-  if (!env.PANDORA_MCP_USER_ID) return { ok: false, status: 403, code: "mcp_user_id_missing", message: "Pandora MCP user id is not configured." };
-  if (!env.PANDORA_MCP_DB_KEY) return { ok: false, status: 403, code: "mcp_db_key_missing", message: "Pandora MCP database key is not configured." };
+  if (!env.PANDORA_MCP_USER_ID) return { ok: false, status: 403, code: "mcp_user_id_missing", message: "Missing server env: PANDORA_MCP_USER_ID" };
+  const dbKey = getPandoraMcpDbKey(env);
+  if (!dbKey.ok) return { ok: false, status: 403, code: "mcp_db_key_missing", message: dbKey.message };
   return { ok: true, authType: "mcp_oauth_access_token", userId: oauth.payload.user_id };
 }
 
@@ -43,11 +47,11 @@ export function requirePandoraMcpPrincipal(request: Request, env: Partial<NodeJS
 }
 
 export function requireMcpCaptureEnabled(env: Partial<NodeJS.ProcessEnv> = process.env) {
-  if (env.PANDORA_ENABLE_MCP_CAPTURE !== "true") return { ok: false as const, status: 403 as const, code: "mcp_capture_disabled", message: "Pandora MCP capture is disabled." };
+  if (env.PANDORA_ENABLE_MCP_CAPTURE !== "true") return { ok: false as const, status: 403 as const, code: "mcp_capture_disabled", message: "capture_disabled: PANDORA_ENABLE_MCP_CAPTURE is not true" };
   return { ok: true as const };
 }
 
 export function requireMcpDistillationEnabled(env: Partial<NodeJS.ProcessEnv> = process.env) {
-  if (env.PANDORA_ENABLE_MCP_DISTILLATION !== "true") return { ok: false as const, status: 403 as const, code: "mcp_distillation_disabled", message: "Pandora MCP distillation is disabled." };
+  if (env.PANDORA_ENABLE_MCP_DISTILLATION !== "true") return { ok: false as const, status: 403 as const, code: "mcp_distillation_disabled", message: "distillation_disabled: PANDORA_ENABLE_MCP_DISTILLATION is not true" };
   return { ok: true as const };
 }
