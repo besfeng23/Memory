@@ -21,6 +21,19 @@ describe("Sprint 1 — stabilize output (people_map + payload)", () => {
     }
   });
 
+  it("drops residual common-noun false positives (Character/Dogs/Phase/Payment/...) but keeps real names", () => {
+    const events = [
+      ev("e1", "Janine Tan met Mang Jun. The Character and Dogs appear. Phase two, Payment and Reservation are due. Resort Command and Pandora Memory are systems. Add this. Joven Del Rosario noted it."),
+    ];
+    const names = extractPeopleMentions(events).map((p) => p.name);
+    expect(names).toContain("Janine Tan");
+    expect(names).toContain("Mang Jun");
+    expect(names.some((n) => n.startsWith("Joven"))).toBe(true);
+    for (const junk of ["Character", "Dogs", "Phase", "Payment", "Reservation", "Command", "Resort Command", "Pandora Memory", "Add"]) {
+      expect(names).not.toContain(junk);
+    }
+  });
+
   it("counts each event once per person (no per-occurrence id duplication)", () => {
     const events = [ev("e1", "Janine Tan. Janine Tan. Janine Tan smiled at Janine Tan.")];
     const [person] = extractPeopleMentions(events);

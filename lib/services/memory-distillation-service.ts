@@ -56,6 +56,11 @@ const PERSON_NAME_STOPWORDS = new Set<string>([
   "before", "during", "after", "every", "each", "all", "any", "some", "main", "core", "both", "new", "old",
   "rule", "rules", "story", "scene", "scenes", "style", "canon", "user", "users", "taglish", "status",
   "pandora", "chatgpt", "memory",
+  // Common domain nouns that are never a person's name (roadmap Sprint 1 follow-up).
+  "character", "characters", "dog", "dogs", "phase", "phases", "payment", "payments", "reservation", "reservations",
+  "command", "resort", "booking", "bookings", "admin", "project", "projects", "website", "audit", "entry", "entries",
+  "plan", "plans", "system", "systems", "engine", "profile", "profiles", "schema", "migration", "repo", "github",
+  "vercel", "supabase", "core", "master", "daily", "context", "pack", "packs", "event", "events", "loop", "loops",
 ]);
 
 type PersonEntry = { name: string; event_ids: string[]; notes: string[] };
@@ -63,7 +68,9 @@ type PersonEntry = { name: string; event_ids: string[]; notes: string[] };
 function isLikelyPersonName(name: string): boolean {
   const tokens = name.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return false;
-  if (PERSON_NAME_STOPWORDS.has(tokens[0].toLowerCase())) return false;
+  // Reject if ANY token is a known non-name word (pronoun/imperative/opener/common domain noun),
+  // so multi-word phrases like "Resort Command" or "Pandora Memory" are not treated as people.
+  if (tokens.some((token) => PERSON_NAME_STOPWORDS.has(token.toLowerCase()))) return false;
   if (tokens.length === 1) return tokens[0].length >= 3;
   return true;
 }
