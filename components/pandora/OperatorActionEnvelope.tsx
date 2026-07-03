@@ -9,6 +9,9 @@ export function OperatorActionEnvelope({ action }: { action: OperatorActionSumma
         <div className="pd-mini"><strong>{action.request_id}</strong><span>request_id</span></div>
         <div className="pd-mini"><strong>{action.idempotency_key.slice(0, 12)}…</strong><span>idempotency</span></div>
         <div className="pd-mini"><strong>{noMutation ? "Yes" : "Pending"}</strong><span>No mutation performed</span></div>
+        <div className="pd-mini"><strong>{action.approved_at ?? "Pending"}</strong><span>approved_at</span></div>
+        <div className="pd-mini"><strong>{action.completed_at ?? "Pending"}</strong><span>completed_at</span></div>
+        <div className="pd-mini"><strong>{action.failed_at ?? "Pending"}</strong><span>failed_at</span></div>
       </div>
       {action.warnings.length > 0 ? <div className="pd-warning-list">{action.warnings.map((warning) => <p key={warning}>⚠ {warning}</p>)}</div> : <p className="pd-muted">No warnings recorded for this action.</p>}
     </div>

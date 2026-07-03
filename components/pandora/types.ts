@@ -142,9 +142,11 @@ export type PandoraVerificationData = {
 };
 
 
-export type OperatorActionStatus = "proposed" | "dry_ran" | "queued" | "blocked" | "completed" | "failed" | "cancelled";
+export type OperatorActionStatus = "proposed" | "dry_ran" | "approved" | "executing" | "completed" | "blocked" | "failed" | "cancelled";
 export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan";
 export type OperatorActionMode = "dry_run" | "queued_only";
+
+export type OperatorActionEventSummary = { id: string; action_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string; };
 
 export type OperatorActionSummary = {
   id: string;
@@ -160,11 +162,17 @@ export type OperatorActionSummary = {
   warnings: string[];
   created_at: string;
   updated_at: string;
+  approved_at?: string | null;
+  completed_at?: string | null;
+  failed_at?: string | null;
+  event_count?: number;
+  event_preview?: OperatorActionEventSummary[];
 };
 
 export type OperatorActionCenterData = {
   actions: OperatorActionSummary[];
   warnings: string[];
+  countsByStatus: Record<OperatorActionStatus, number>;
 };
 
 export type PandoraDashboardData = {

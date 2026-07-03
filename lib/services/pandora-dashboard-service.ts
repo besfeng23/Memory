@@ -39,7 +39,21 @@ function eventSummary(event: Row) {
 export async function loadPandoraDashboardData(client: PandoraDashboardDbClient, input: { userId: string; operatorLabel?: string }): Promise<PandoraDashboardData> {
   const warnings: string[] = [];
   const verification = await loadPandoraVerificationData(client, { userId: input.userId });
+  const actionWarnings: string[] = [];
   const operatorActions = await listOperatorActions(client, { userId: input.userId, limit: 10 });
+  const actionEvents = await Promise.all(operatorActions.map(async (action) => {
+    try {
+      const result = await client.from("pandora_operator_action_events").select("*").eq("user_id", input.userId).eq("action_id", action.id).order("created_at", { ascending: false }).limit(3);
+      if (result.error) { actionWarnings.push(`operator action events unavailable for ${action.id}; showing action without timeline.`); return { actionId: action.id, events: [] as Row[] }; }
+      return { actionId: action.id, events: Array.isArray(result.data) ? result.data : [] };
+    } catch {
+      actionWarnings.push(`operator action events unavailable for ${action.id}; showing action without timeline.`);
+      return { actionId: action.id, events: [] as Row[] };
+    }
+  }));
+  const eventsByAction = new Map(actionEvents.map((item) => [item.actionId, item.events]));
+  const actionStatuses = ["proposed", "dry_ran", "approved", "executing", "completed", "blocked", "failed", "cancelled"] as const;
+  const countsByStatus = Object.fromEntries(actionStatuses.map((status) => [status, operatorActions.filter((action) => action.status === status).length])) as PandoraDashboardData["operatorActions"]["countsByStatus"];
   const data = await Promise.all(namespaces.map(async (namespace) => ({
     namespace,
     events: await rows(client, "memory_events", input.userId, namespace, warnings, 500),
@@ -87,6 +101,9 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     timelineEvents: events.slice(0, 6).map((event) => ({ id: String(event.id ?? `${event.namespace}-${event.created_at ?? "event"}`), title: `${event.namespace} • ${event.status ?? "unknown"}`, time: event.created_at ?? "Live read", desc: eventSummary(event), namespace: event.namespace === "au" ? "au" : "real_life", color: event.namespace === "au" ? "purple" : "emerald" })),
     diagnostics: { coreSystems: [{ label: "Route exposure", value: "Auth gated", state: "healthy" }, { label: "Displayed data", value: warnings.length ? "Partial live reads" : "Live reads", state: warnings.length ? "attention" : "healthy" }, { label: "Master-pack invariant", value: duplicates ? `${duplicates} duplicate` : "OK", state: duplicates ? "attention" : "healthy" }, { label: "Client user_id", value: "Rejected", state: "healthy" }], gatedSystems: [{ label: "Semantic retrieval", value: "Gated Off", state: "gated" }, { label: "Embeddings", value: "Gated Off", state: "gated" }, { label: "Model calls", value: "Gated Off", state: "gated" }, { label: "Pruning automation", value: "Review-only", state: "gated" }], envelope: { title: "Dashboard Truth Envelope", description: warnings.length ? "Unavailable reads were converted to warnings and empty UI state." : "Live loader completed from authenticated Supabase reads." } },
     verification,
-    operatorActions: { actions: operatorActions.map((action) => ({ id: action.id, request_id: action.request_id, idempotency_key: action.idempotency_key, action_type: action.action_type, namespace: action.namespace, mode: action.mode, status: action.status, title: action.title, description: action.description, result: action.result, warnings: action.warnings, created_at: action.created_at, updated_at: action.updated_at })), warnings: operatorActions.flatMap((action) => action.warnings ?? []) },
+    operatorActions: { actions: operatorActions.map((action) => {
+      const eventPreview = eventsByAction.get(action.id) ?? [];
+      return { id: action.id, request_id: action.request_id, idempotency_key: action.idempotency_key, action_type: action.action_type, namespace: action.namespace, mode: action.mode, status: action.status, title: action.title, description: action.description, result: action.result, warnings: action.warnings, created_at: action.created_at, updated_at: action.updated_at, approved_at: action.approved_at, completed_at: action.completed_at, failed_at: action.failed_at, event_count: eventPreview.length, event_preview: eventPreview.map((event: Row) => ({ id: String(event.id), action_id: String(event.action_id), user_id: String(event.user_id), event_type: String(event.event_type), message: String(event.message), metadata: event.metadata ?? {}, created_at: String(event.created_at) })) };
+    }), warnings: [...actionWarnings, ...operatorActions.flatMap((action) => action.warnings ?? [])], countsByStatus },
   };
 }

@@ -6,7 +6,7 @@ import { loadPandoraVerificationData } from "@/lib/services/pandora-verification
 
 export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan";
 export type OperatorActionMode = "dry_run" | "queued_only";
-export type OperatorActionStatus = "proposed" | "dry_ran" | "queued" | "blocked" | "completed" | "failed" | "cancelled";
+export type OperatorActionStatus = "proposed" | "dry_ran" | "approved" | "executing" | "completed" | "blocked" | "failed" | "cancelled";
 export type OperatorActionRow = { id: string; user_id: string; request_id: string; idempotency_key: string; action_type: OperatorActionType; namespace: PandoraNamespace | null; mode: OperatorActionMode; status: OperatorActionStatus; title: string; description: string; payload: Record<string, unknown>; result: Record<string, unknown>; warnings: string[]; created_at: string; updated_at: string; approved_at?: string | null; completed_at?: string | null; failed_at?: string | null };
 export type OperatorActionEventRow = { id: string; action_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string };
 export type OperatorActionDbClient = { from: (table: string) => any };
@@ -21,11 +21,26 @@ function assertNamespace(namespace?: string | null): asserts namespace is Pandor
 function stable(value: unknown): string { if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`; if (value && typeof value === "object") return `{${Object.keys(value as Record<string, unknown>).sort().map((k) => `${JSON.stringify(k)}:${stable((value as Record<string, unknown>)[k])}`).join(",")}}`; return JSON.stringify(value); }
 export function operatorActionIdempotencyKey(input: { userId: string; actionType: string; namespace?: string | null; payload?: unknown; mode: string }) { return createHash("sha256").update([input.userId, input.actionType, input.namespace ?? "global", input.mode, stable(input.payload ?? {})].join("|")).digest("hex"); }
 function titleFor(actionType: OperatorActionType) { return actionType.split("_").map((p) => p[0].toUpperCase() + p.slice(1)).join(" "); }
-function envelope(action: OperatorActionRow, result: Record<string, unknown>, warnings: string[]) { return { ok: warnings.length === 0, request_id: action.request_id, action_id: action.id, status: action.status, warnings, evidence_summary: result, no_mutation_performed: true }; }
+function envelope(action: OperatorActionRow, result: Record<string, unknown>, warnings: string[]) { return { ok: warnings.length === 0, request_id: action.request_id, action_id: action.id, action_type: action.action_type, status: action.status, evidence_summary: result, warnings, no_mutation_performed: true, executed_at: new Date().toISOString() }; }
+const TERMINAL = new Set<OperatorActionStatus>(["completed", "failed", "cancelled"]);
+function assertTransition(from: OperatorActionStatus, to: OperatorActionStatus) { const allowed: Record<OperatorActionStatus, OperatorActionStatus[]> = { proposed: ["dry_ran", "approved", "cancelled"], dry_ran: ["approved", "cancelled"], approved: ["executing", "cancelled"], executing: ["completed", "failed"], blocked: [], completed: [], failed: [], cancelled: [] }; if (!allowed[from]?.includes(to)) throw new Error(`Invalid Pandora operator action transition: ${from} -> ${to}`); }
 async function single(query: any) { const res = await query; if (res.error) return null; return Array.isArray(res.data) ? res.data[0] ?? null : res.data ?? null; }
 
 export async function listOperatorActions(client: OperatorActionDbClient, input: { userId: string; limit?: number }): Promise<OperatorActionRow[]> {
   const result = await client.from("pandora_operator_actions").select("*").eq("user_id", input.userId).order("created_at", { ascending: false }).limit(input.limit ?? 20);
+  if (result.error) return [];
+  return Array.isArray(result.data) ? result.data : [];
+}
+
+export async function getOperatorAction(client: OperatorActionDbClient, input: { userId: string; actionId: string }): Promise<OperatorActionRow> {
+  const action = await single(client.from("pandora_operator_actions").select("*").eq("user_id", input.userId).eq("id", input.actionId).limit(1));
+  if (!action) throw new Error("Pandora operator action not found for current user");
+  return action;
+}
+
+export async function listOperatorActionEvents(client: OperatorActionDbClient, input: { userId: string; actionId: string }): Promise<OperatorActionEventRow[]> {
+  await getOperatorAction(client, input);
+  const result = await client.from("pandora_operator_action_events").select("*").eq("user_id", input.userId).eq("action_id", input.actionId).order("created_at", { ascending: true });
   if (result.error) return [];
   return Array.isArray(result.data) ? result.data : [];
 }
@@ -41,7 +56,7 @@ export async function proposeOperatorAction(client: OperatorActionDbClient, inpu
   const existing = await single(client.from("pandora_operator_actions").select("*").eq("user_id", input.userId).eq("idempotency_key", idempotencyKey).limit(1));
   if (existing) return existing;
   const now = new Date().toISOString(); const requestId = randomUUID();
-  const row = { id: randomUUID(), user_id: input.userId, request_id: requestId, idempotency_key: idempotencyKey, action_type: input.actionType, namespace: input.namespace ?? null, mode, status: mode === "queued_only" ? "queued" : "proposed", title: titleFor(input.actionType), description: "Operator-proposed safe action. Initial implementation is dry-run or queued-only and cannot mutate core memory truth tables.", payload: input.payload ?? {}, result: {}, warnings: [], created_at: now, updated_at: now, approved_at: null, completed_at: null, failed_at: null };
+  const row = { id: randomUUID(), user_id: input.userId, request_id: requestId, idempotency_key: idempotencyKey, action_type: input.actionType, namespace: input.namespace ?? null, mode, status: "proposed", title: titleFor(input.actionType), description: "Operator-proposed safe action. Initial implementation is dry-run or queued-only and cannot mutate core memory truth tables.", payload: input.payload ?? {}, result: {}, warnings: [], created_at: now, updated_at: now, approved_at: null, completed_at: null, failed_at: null };
   const created = await single(client.from("pandora_operator_actions").insert(row).select("*").single());
   if (!created) throw new Error("Unable to create Pandora operator action");
   await createActionEvent(client, { userId: input.userId, actionId: created.id, eventType: "proposed", message: "Operator action proposed with deterministic idempotency key.", metadata: { action_type: input.actionType, mode } });
@@ -60,19 +75,56 @@ async function buildDryRunResult(client: OperatorActionDbClient, userId: string,
 }
 
 export async function dryRunOperatorAction(client: OperatorActionDbClient, input: { userId: string; actionId: string }): Promise<OperatorActionRow> {
-  const action = await single(client.from("pandora_operator_actions").select("*").eq("user_id", input.userId).eq("id", input.actionId).limit(1));
-  if (!action) throw new Error("Pandora operator action not found for current user");
+  const action = await getOperatorAction(client, input);
+  assertTransition(action.status, "dry_ran");
   const built = await buildDryRunResult(client, input.userId, action);
-  const status: OperatorActionStatus = built.warnings.length ? "blocked" : "dry_ran";
+  const status: OperatorActionStatus = "dry_ran";
   const nextResult = envelope({ ...action, status }, built.result, built.warnings);
   const updated = await single(client.from("pandora_operator_actions").update({ status, result: nextResult, warnings: built.warnings, updated_at: new Date().toISOString() }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single());
   await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: status, message: "Safe dry-run completed; no core memory mutation was performed.", metadata: nextResult });
   return updated ?? { ...action, status, result: nextResult, warnings: built.warnings };
 }
 
+export async function approveOperatorAction(client: OperatorActionDbClient, input: { userId: string; actionId: string }): Promise<OperatorActionRow> {
+  const action = await getOperatorAction(client, input);
+  assertTransition(action.status, "approved");
+  assertAction(action.action_type);
+  assertMode(action.mode);
+  const now = new Date().toISOString();
+  const updated = await single(client.from("pandora_operator_actions").update({ status: "approved", approved_at: now, updated_at: now }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single());
+  await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "approved", message: "Operator approved safe read-only execution. No live memory mutation was authorized.", metadata: { no_mutation_performed: true } });
+  return updated ?? { ...action, status: "approved", approved_at: now, updated_at: now };
+}
+
+export async function executeApprovedOperatorAction(client: OperatorActionDbClient, input: { userId: string; actionId: string }): Promise<OperatorActionRow> {
+  const action = await getOperatorAction(client, input);
+  assertTransition(action.status, "executing");
+  assertAction(action.action_type);
+  assertMode(action.mode);
+  const executingAt = new Date().toISOString();
+  const executing = await single(client.from("pandora_operator_actions").update({ status: "executing", updated_at: executingAt }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single()) ?? { ...action, status: "executing" as const, updated_at: executingAt };
+  await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "executing", message: "Approved read-only verification execution started.", metadata: { no_mutation_performed: true } });
+  try {
+    const built = await buildDryRunResult(client, input.userId, executing);
+    const completedAt = new Date().toISOString();
+    const result = envelope({ ...executing, status: "completed" }, built.result, built.warnings);
+    const completed = await single(client.from("pandora_operator_actions").update({ status: "completed", result, warnings: built.warnings, completed_at: completedAt, updated_at: completedAt }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single());
+    await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "completed", message: "Approved read-only execution completed. No core memory mutation was performed.", metadata: result });
+    return completed ?? { ...executing, status: "completed", result, warnings: built.warnings, completed_at: completedAt, updated_at: completedAt };
+  } catch (error) {
+    const failedAt = new Date().toISOString();
+    const warnings = [error instanceof Error ? error.message : "Read-only execution failed"];
+    const result = envelope({ ...executing, status: "failed" }, { error: warnings[0] }, warnings);
+    const failed = await single(client.from("pandora_operator_actions").update({ status: "failed", result, warnings, failed_at: failedAt, updated_at: failedAt }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single());
+    await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "failed", message: "Approved read-only execution failed; no completion was fabricated.", metadata: result });
+    return failed ?? { ...executing, status: "failed", result, warnings, failed_at: failedAt, updated_at: failedAt };
+  }
+}
+
 export async function cancelOperatorAction(client: OperatorActionDbClient, input: { userId: string; actionId: string }): Promise<OperatorActionRow> {
-  const action = await single(client.from("pandora_operator_actions").select("*").eq("user_id", input.userId).eq("id", input.actionId).limit(1));
-  if (!action) throw new Error("Pandora operator action not found for current user");
+  const action = await getOperatorAction(client, input);
+  if (TERMINAL.has(action.status)) throw new Error(`Cannot cancel terminal Pandora operator action: ${action.status}`);
+  assertTransition(action.status, "cancelled");
   const updated = await single(client.from("pandora_operator_actions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single());
   await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "cancelled", message: "Operator action cancelled before live execution; no mutation performed.", metadata: { no_mutation_performed: true } });
   return updated ?? { ...action, status: "cancelled" };
