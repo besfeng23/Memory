@@ -4,9 +4,10 @@ import { loadPandoraDashboardData } from "@/lib/services/pandora-dashboard-servi
 
 type Row = Record<string, any>;
 
-function makeClient(store: Record<string, Row[]>) {
+function makeClient(store: Record<string, Row[]>, failTables: string[] = []) {
   return {
     from(table: string) {
+      if (failTables.includes(table)) throw new Error("table missing");
       const eqs: Record<string, any> = {};
       let limitN: number | undefined;
       let orderBy: string | undefined;
@@ -58,6 +59,8 @@ describe("loadPandoraDashboardData", () => {
     expect(data.operatorLabel).toBe("operator@example.com");
     expect(data.memorySpaces.find((space) => space.id === "real_life")?.memories).toBe(1);
     expect(data.memorySpaces.find((space) => space.id === "au")?.memories).toBe(1);
+    expect(data.memorySpaces.find((space) => space.id === "real_life")?.description).toContain("real master");
+    expect(data.memorySpaces.find((space) => space.id === "au")?.description).toContain("au master");
     expect(JSON.stringify(data)).not.toContain("other user");
     expect(JSON.stringify(data)).not.toContain(OTHER);
   });
@@ -70,11 +73,41 @@ describe("loadPandoraDashboardData", () => {
     expect(JSON.stringify(data)).not.toContain("retrieval accuracy");
   });
 
-  it("surfaces active master duplicates as a supersession queue item", async () => {
+  it("surfaces active master duplicates as diagnostics and work queue attention", async () => {
     const store = baseStore();
     store.memory_context_packs.push({ id: "rl-dup", user_id: USER, namespace: "real_life", pack_type: "master", status: "active", title: "duplicate", created_at: "2026-07-03T12:30:00Z" });
     const data = await loadPandoraDashboardData(makeClient(store), { userId: USER });
     expect(data.workQueue.packSupersessionNeeded).toBe(1);
     expect(data.diagnostics.coreSystems.find((row) => row.label === "Master-pack invariant")?.state).toBe("attention");
+    expect(data.stats.find((stat) => stat.id === "packs")?.subtitle).toContain("duplicate");
+  });
+
+  it("returns warnings and safe empty dashboard when table reads fail", async () => {
+    const data = await loadPandoraDashboardData(makeClient({}, ["memory_events", "memory_context_packs", "memory_profiles", "memory_open_loops", "memory_capture_candidates", "memory_review_queue_items", "memory_pruning_candidates"]), { userId: USER });
+    expect(data.warnings.length).toBeGreaterThan(0);
+    expect(data.memorySpaces.find((space) => space.id === "real_life")?.memories).toBe(0);
+    expect(data.timelineEvents).toEqual([]);
+    expect(data.diagnostics.coreSystems.find((row) => row.label === "Displayed data")?.state).toBe("attention");
+  });
+
+  it.each([
+    [null, "N/A", 0],
+    [0.77, "77%", 77],
+    [77, "77%", 77],
+    ["invalid", "N/A", 0],
+  ])("formats profile confidence safely for %s", async (confidence, label, percent) => {
+    const store = baseStore();
+    store.memory_profiles[0].confidence = confidence;
+    const data = await loadPandoraDashboardData(makeClient(store), { userId: USER });
+    expect(data.profileSnapshot.confidenceLabel).toBe(label);
+    expect(data.profileSnapshot.confidencePercent).toBe(percent);
+  });
+
+  it("handles null timeline summaries safely", async () => {
+    const store = baseStore();
+    store.memory_events[0].raw_text = null;
+    store.memory_events[0].extracted_summary = null;
+    const data = await loadPandoraDashboardData(makeClient(store), { userId: USER });
+    expect(data.timelineEvents.find((event) => event.id === "rl-1")?.desc).toBe("No summary returned for this live row.");
   });
 });

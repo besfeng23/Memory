@@ -1,10 +1,11 @@
 import { MoreHorizontal, RefreshCw } from "lucide-react";
-import { profileSnapshot } from "./mock-data";
+import type { ProfileSnapshot } from "./types";
 
 function ConfidenceRing({ value, label }: { value: number; label: string }) {
+  const safeValue = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - value / 100);
+  const offset = circumference * (1 - safeValue / 100);
 
   return (
     <div className="pd-ring">
@@ -17,19 +18,19 @@ function ConfidenceRing({ value, label }: { value: number; label: string }) {
   );
 }
 
-export function AdaptiveProfileCard({ loading }: { loading: boolean }) {
+export function AdaptiveProfileCard({ profile, loading = false }: { profile: ProfileSnapshot; loading?: boolean }) {
   return (
     <section className="pd-card">
       <div className="pd-section-head">
-        <div><p className="pd-label">Adaptive Profile</p><h3>{profileSnapshot.name}</h3></div>
-        <span className="pd-pill pd-pill-slate">{profileSnapshot.status}</span>
+        <div><p className="pd-label">Adaptive Profile</p><h3>{profile.name}</h3></div>
+        <span className="pd-pill pd-pill-slate">{profile.status}</span>
       </div>
       {loading ? <div className="pd-loading" aria-label="Loading adaptive profile shell" /> : <>
         <div className="pd-profile-main">
-          <ConfidenceRing value={profileSnapshot.confidencePercent} label={profileSnapshot.confidenceLabel} />
-          <div><strong>{profileSnapshot.summary}</strong><p>{profileSnapshot.lastRefreshed}</p></div>
+          <ConfidenceRing value={profile.confidencePercent} label={profile.confidenceLabel} />
+          <div><strong>{profile.summary}</strong><p>{profile.lastRefreshed}</p></div>
         </div>
-        <div className="pd-traits">{profileSnapshot.traits.map((trait) => <span key={trait}>{trait}</span>)}</div>
+        <div className="pd-traits">{profile.traits.map((trait) => <span key={trait}>{trait}</span>)}</div>
         <div className="pd-card-row">
           <button type="button" className="pd-secondary-btn" disabled><RefreshCw size={16} aria-hidden="true" />Refresh Profile</button>
           <button type="button" className="pd-icon-button" aria-label="More profile options" disabled><MoreHorizontal size={18} aria-hidden="true" /></button>
