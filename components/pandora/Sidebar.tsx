@@ -1,5 +1,5 @@
 import { Activity, Brain, Circle, FolderKanban, Gauge, History, ListChecks, Settings, Users } from "lucide-react";
-import { navItems } from "./mock-data";
+import { navItems } from "./nav-items";
 
 const icons = [Gauge, History, FolderKanban, Brain, ListChecks, Users, FolderKanban, Activity, Settings];
 

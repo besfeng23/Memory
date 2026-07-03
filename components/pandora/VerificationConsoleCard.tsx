@@ -1,0 +1,9 @@
+import { AuditEvidenceCard } from "./AuditEvidenceCard";
+import { NamespaceInvariantCard } from "./NamespaceInvariantCard";
+import { PackSupersessionCard } from "./PackSupersessionCard";
+import { RetrievalEvalCard } from "./RetrievalEvalCard";
+import type { PandoraVerificationData } from "./types";
+
+export function VerificationConsoleCard({ verification }: { verification: PandoraVerificationData }) {
+  return <section aria-label="Pandora operator verification console"><div className="pd-header-row"><div><p className="pd-label">Operator Verification Console</p><h2>Memory health evidence</h2><p>Read-only verification for master packs, namespace separation, retrieval eval status, context-pack distillation audit evidence, and smoke evidence.</p></div><div className="pd-badges"><span className="pd-pill pd-pill-emerald">Read-only</span><span className="pd-pill pd-pill-slate">No unsafe actions</span><span className="pd-pill pd-pill-amber">{verification.status}</span></div></div><div className="pd-dashboard-grid"><div className="pd-dashboard-col"><NamespaceInvariantCard namespaces={verification.namespaces} /></div><div className="pd-dashboard-col"><PackSupersessionCard summary={verification.packSupersession} /></div><div className="pd-dashboard-col"><RetrievalEvalCard evalSummary={verification.retrievalEval} /><AuditEvidenceCard items={verification.auditEvidence} smoke={verification.smokeEvidence} /></div></div>{verification.warnings.length ? <section className="pd-card"><div className="pd-section-head"><div><p className="pd-label">Verification warnings</p><h3>Evidence gaps are not green</h3></div></div><div className="browser-state-grid">{verification.warnings.map((warning) => <span className="browser-state-pill browser-state-pill--blocked" key={warning}>{warning}</span>)}</div></section> : null}</section>;
+}

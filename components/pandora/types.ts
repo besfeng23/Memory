@@ -68,6 +68,79 @@ export type ProfileSnapshot = {
   evidence: string;
 };
 
+export type VerificationStatus = "pass" | "warning" | "fail" | "not_run";
+export type PandoraNamespace = "real_life" | "au";
+
+export type PackMetadata = {
+  id: string;
+  namespace: PandoraNamespace;
+  packType: string;
+  status: string;
+  title: string;
+  createdAt: string;
+  updatedAt?: string;
+  supersededAt?: string;
+};
+
+export type NamespaceVerificationSummary = {
+  namespace: PandoraNamespace;
+  status: VerificationStatus;
+  activeMasterCount: number;
+  archivedMasterCount: number;
+  newestActiveMaster: PackMetadata | null;
+  previousArchivedMaster: PackMetadata | null;
+  duplicateActiveMasterIds: string[];
+  warnings: string[];
+};
+
+export type PackSupersessionSummary = {
+  status: VerificationStatus;
+  namespaces: NamespaceVerificationSummary[];
+  warnings: string[];
+};
+
+export type RetrievalEvalSummary = {
+  status: VerificationStatus;
+  source: string;
+  latestRunId: string | null;
+  latestRunAt: string | null;
+  resultLabel: string;
+  realResultAvailable: boolean;
+  warnings: string[];
+};
+
+export type AuditEvidenceItem = {
+  id: string;
+  action: string;
+  namespace: PandoraNamespace | "unknown";
+  recordId: string;
+  createdAt: string;
+};
+
+export type SmokeEvidenceSummary = {
+  status: VerificationStatus;
+  latest: AuditEvidenceItem | null;
+  warnings: string[];
+};
+
+export type PandoraVerificationData = {
+  generatedAt: string;
+  status: VerificationStatus;
+  namespaces: NamespaceVerificationSummary[];
+  packSupersession: PackSupersessionSummary;
+  retrievalEval: RetrievalEvalSummary;
+  auditEvidence: AuditEvidenceItem[];
+  smokeEvidence: SmokeEvidenceSummary;
+  invariantStatus: {
+    exactlyOneActiveMasterPerNamespace: VerificationStatus;
+    noCrossNamespacePackMixing: VerificationStatus;
+    noDuplicateActiveMaster: VerificationStatus;
+    retrievalEvalHasNoFabricatedScore: VerificationStatus;
+    smokeEvidence: VerificationStatus;
+  };
+  warnings: string[];
+};
+
 export type PandoraDashboardData = {
   generatedAt: string;
   operatorLabel: string;
@@ -93,4 +166,5 @@ export type PandoraDashboardData = {
       description: string;
     };
   };
+  verification: PandoraVerificationData;
 };

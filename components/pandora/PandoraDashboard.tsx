@@ -10,6 +10,7 @@ import { RecentEventsTimeline } from "./RecentEventsTimeline";
 import { Sidebar } from "./Sidebar";
 import { StatCard } from "./StatCard";
 import { TopBar } from "./TopBar";
+import { VerificationConsoleCard } from "./VerificationConsoleCard";
 import { WorkQueueCard } from "./WorkQueueCard";
 import type { PandoraDashboardData, StatItem } from "./types";
 import { useState } from "react";
@@ -41,6 +42,7 @@ export function PandoraDashboard({ dashboardData }: { dashboardData: PandoraDash
           <section className="pd-stat-grid" aria-label="Pandora status stats">
             {stats.map((stat) => <StatCard stat={stat} key={stat.id} />)}
           </section>
+          <VerificationConsoleCard verification={dashboardData.verification} />
           <div className="pd-dashboard-grid">
             <div className="pd-dashboard-col pd-dashboard-col-wide">
               <MemorySpacesCard spaces={dashboardData.memorySpaces} />
