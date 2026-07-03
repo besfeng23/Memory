@@ -61,3 +61,7 @@ Each state transition creates an event row with user scope, action id, event typ
 ## Future path to human-approved live actions
 
 Any future live action needs a separate reviewed PR, protected dry-run output, explicit human approval, production readiness checks, database verification, and post-run audit evidence. This runner is not that live-mutation path.
+
+## Shadow staging exception
+
+The existing verification actions remain read-only. `prepare_shadow_context_pack` is the only staged write exception in this phase: after approval/execution it inserts a shadow candidate in `pandora_shadow_context_packs` and a matching shadow event. This is not a production context-pack promotion and cannot update `memory_context_packs`.

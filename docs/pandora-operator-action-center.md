@@ -45,3 +45,7 @@ Approved actions execute verification loaders only. Results include `no_mutation
 ## Idempotency and events
 
 The service hashes the server-derived `userId`, action type, namespace, normalized payload, and mode. The database enforces `unique(user_id, idempotency_key)`. Every proposed, dry-run, approved, executing, completed, failed, and cancelled transition writes an event row.
+
+## Shadow context-pack action
+
+`prepare_shadow_context_pack` is available as a dry-run/queued-only operator action. Dry-run computes deterministic shadow candidate evidence without inserting a row. Approved execution writes only to the new shadow context-pack tables plus operator action events. It does not mutate core memory tables and does not promote to `memory_context_packs`.

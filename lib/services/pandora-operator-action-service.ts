@@ -3,15 +3,16 @@ import { createHash, randomUUID } from "node:crypto";
 import type { PandoraNamespace } from "@/components/pandora/types";
 import { loadPandoraDashboardData } from "@/lib/services/pandora-dashboard-service";
 import { loadPandoraVerificationData } from "@/lib/services/pandora-verification-service";
+import { createShadowContextPackCandidate, dryRunShadowContextPackCandidate } from "@/lib/services/pandora-shadow-context-pack-service";
 
-export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan";
+export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack";
 export type OperatorActionMode = "dry_run" | "queued_only";
 export type OperatorActionStatus = "proposed" | "dry_ran" | "approved" | "executing" | "completed" | "blocked" | "failed" | "cancelled";
 export type OperatorActionRow = { id: string; user_id: string; request_id: string; idempotency_key: string; action_type: OperatorActionType; namespace: PandoraNamespace | null; mode: OperatorActionMode; status: OperatorActionStatus; title: string; description: string; payload: Record<string, unknown>; result: Record<string, unknown>; warnings: string[]; created_at: string; updated_at: string; approved_at?: string | null; completed_at?: string | null; failed_at?: string | null };
 export type OperatorActionEventRow = { id: string; action_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string };
 export type OperatorActionDbClient = { from: (table: string) => any };
 
-const ACTIONS = new Set<OperatorActionType>(["verify_namespace_invariants", "verify_pack_supersession", "check_retrieval_eval_status", "refresh_dashboard_snapshot", "prepare_distill_smoke_plan"]);
+const ACTIONS = new Set<OperatorActionType>(["verify_namespace_invariants", "verify_pack_supersession", "check_retrieval_eval_status", "refresh_dashboard_snapshot", "prepare_distill_smoke_plan", "prepare_shadow_context_pack"]);
 const MODES = new Set<OperatorActionMode>(["dry_run", "queued_only"]);
 const NAMESPACES = new Set(["real_life", "au"]);
 
@@ -21,7 +22,7 @@ function assertNamespace(namespace?: string | null): asserts namespace is Pandor
 function stable(value: unknown): string { if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`; if (value && typeof value === "object") return `{${Object.keys(value as Record<string, unknown>).sort().map((k) => `${JSON.stringify(k)}:${stable((value as Record<string, unknown>)[k])}`).join(",")}}`; return JSON.stringify(value); }
 export function operatorActionIdempotencyKey(input: { userId: string; actionType: string; namespace?: string | null; payload?: unknown; mode: string }) { return createHash("sha256").update([input.userId, input.actionType, input.namespace ?? "global", input.mode, stable(input.payload ?? {})].join("|")).digest("hex"); }
 function titleFor(actionType: OperatorActionType) { return actionType.split("_").map((p) => p[0].toUpperCase() + p.slice(1)).join(" "); }
-function envelope(action: OperatorActionRow, result: Record<string, unknown>, warnings: string[]) { return { ok: warnings.length === 0, request_id: action.request_id, action_id: action.id, action_type: action.action_type, status: action.status, evidence_summary: result, warnings, no_mutation_performed: true, executed_at: new Date().toISOString() }; }
+function envelope(action: OperatorActionRow, result: Record<string, unknown>, warnings: string[]) { return { ok: warnings.length === 0, request_id: action.request_id, action_id: action.id, action_type: action.action_type, status: action.status, evidence_summary: result, warnings, no_mutation_performed: result.shadow_write_performed === true ? false : true, no_core_memory_mutation_performed: true, no_promotion_performed: true, executed_at: new Date().toISOString() }; }
 const TERMINAL = new Set<OperatorActionStatus>(["completed", "failed", "cancelled"]);
 function assertTransition(from: OperatorActionStatus, to: OperatorActionStatus) { const allowed: Record<OperatorActionStatus, OperatorActionStatus[]> = { proposed: ["dry_ran", "approved", "cancelled"], dry_ran: ["approved", "cancelled"], approved: ["executing", "cancelled"], executing: ["completed", "failed"], blocked: [], completed: [], failed: [], cancelled: [] }; if (!allowed[from]?.includes(to)) throw new Error(`Invalid Pandora operator action transition: ${from} -> ${to}`); }
 async function single(query: any) { const res = await query; if (res.error) return null; return Array.isArray(res.data) ? res.data[0] ?? null : res.data ?? null; }
@@ -65,6 +66,11 @@ export async function proposeOperatorAction(client: OperatorActionDbClient, inpu
 
 async function buildDryRunResult(client: OperatorActionDbClient, userId: string, action: OperatorActionRow) {
   const warnings: string[] = [];
+  if (action.action_type === "prepare_shadow_context_pack") {
+    if (!action.namespace) throw new Error("prepare_shadow_context_pack requires a namespace");
+    const candidate = await dryRunShadowContextPackCandidate(client, { userId, namespace: action.namespace, sourceWindow: action.payload?.source_window as Record<string, unknown> | undefined });
+    return { warnings: candidate.warnings, result: { checked: "shadow_context_pack_candidate", ...candidate, no_core_memory_mutation_performed: true, shadow_write_performed: false, no_promotion_performed: true } };
+  }
   const verification = await loadPandoraVerificationData(client, { userId });
   if (action.action_type === "refresh_dashboard_snapshot") { const dashboard = await loadPandoraDashboardData(client, { userId }); warnings.push(...dashboard.warnings); return { warnings, result: { checked: "dashboard_snapshot", generated_at: dashboard.generatedAt, memory_spaces: dashboard.memorySpaces.map((s) => ({ namespace: s.id, memories: s.memories, status: s.status })), gated_systems: dashboard.diagnostics.gatedSystems, no_mutation_performed: true } }; }
   warnings.push(...verification.warnings);
@@ -81,7 +87,7 @@ export async function dryRunOperatorAction(client: OperatorActionDbClient, input
   const status: OperatorActionStatus = "dry_ran";
   const nextResult = envelope({ ...action, status }, built.result, built.warnings);
   const updated = await single(client.from("pandora_operator_actions").update({ status, result: nextResult, warnings: built.warnings, updated_at: new Date().toISOString() }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single());
-  await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: status, message: "Safe dry-run completed; no core memory mutation was performed.", metadata: nextResult });
+  await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: action.action_type === "prepare_shadow_context_pack" ? "shadow_candidate_dry_run" : status, message: action.action_type === "prepare_shadow_context_pack" ? "Shadow context-pack candidate dry-run completed; no shadow row or core memory mutation was performed." : "Safe dry-run completed; no core memory mutation was performed.", metadata: nextResult });
   return updated ?? { ...action, status, result: nextResult, warnings: built.warnings };
 }
 
@@ -103,9 +109,15 @@ export async function executeApprovedOperatorAction(client: OperatorActionDbClie
   assertMode(action.mode);
   const executingAt = new Date().toISOString();
   const executing = await single(client.from("pandora_operator_actions").update({ status: "executing", updated_at: executingAt }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single()) ?? { ...action, status: "executing" as const, updated_at: executingAt };
-  await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "executing", message: "Approved read-only verification execution started.", metadata: { no_mutation_performed: true } });
+  await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "executing", message: action.action_type === "prepare_shadow_context_pack" ? "Approved shadow staging execution started." : "Approved read-only verification execution started.", metadata: { no_mutation_performed: action.action_type !== "prepare_shadow_context_pack", no_core_memory_mutation_performed: true } });
   try {
-    const built = await buildDryRunResult(client, input.userId, executing);
+    let built: { warnings: string[]; result: Record<string, unknown> } = await buildDryRunResult(client, input.userId, executing);
+    if (executing.action_type === "prepare_shadow_context_pack") {
+      if (!executing.namespace) throw new Error("prepare_shadow_context_pack requires a namespace");
+      const shadow = await createShadowContextPackCandidate(client, { userId: input.userId, namespace: executing.namespace, operatorActionId: executing.id, requestId: executing.request_id, sourceWindow: executing.payload?.source_window as Record<string, unknown> | undefined });
+      built = { warnings: shadow.warnings, result: { checked: "shadow_context_pack_candidate", shadow_pack_id: shadow.id, status: shadow.status, namespace: shadow.namespace, shadow_write_performed: true, no_core_memory_mutation_performed: true, no_promotion_performed: true } };
+      await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "shadow_candidate_created", message: "Shadow context-pack candidate created in staging tables only.", metadata: built.result });
+    }
     const completedAt = new Date().toISOString();
     const result = envelope({ ...executing, status: "completed" }, built.result, built.warnings);
     const completed = await single(client.from("pandora_operator_actions").update({ status: "completed", result, warnings: built.warnings, completed_at: completedAt, updated_at: completedAt }).eq("user_id", input.userId).eq("id", input.actionId).select("*").single());

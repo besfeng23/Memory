@@ -2,6 +2,7 @@
 import type { PandoraDashboardData } from "@/components/pandora/types";
 import { loadPandoraVerificationData } from "@/lib/services/pandora-verification-service";
 import { listOperatorActions } from "@/lib/services/pandora-operator-action-service";
+import { listShadowContextPacks } from "@/lib/services/pandora-shadow-context-pack-service";
 
 export type PandoraDashboardDbClient = { from: (table: string) => any };
 type Namespace = "real_life" | "au";
@@ -41,6 +42,9 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
   const verification = await loadPandoraVerificationData(client, { userId: input.userId });
   const actionWarnings: string[] = [];
   const operatorActions = await listOperatorActions(client, { userId: input.userId, limit: 10 });
+  const shadowWarnings: string[] = [];
+  let shadowPacks = [] as Row[];
+  try { shadowPacks = await listShadowContextPacks(client, { userId: input.userId, limit: 8 }) as Row[]; } catch { shadowWarnings.push("shadow context-pack tables unavailable; lab is showing an empty state."); }
   const actionEvents = await Promise.all(operatorActions.map(async (action) => {
     try {
       const result = await client.from("pandora_operator_action_events").select("*").eq("user_id", input.userId).eq("action_id", action.id).order("created_at", { ascending: false }).limit(3);
@@ -52,6 +56,8 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     }
   }));
   const eventsByAction = new Map(actionEvents.map((item) => [item.actionId, item.events]));
+  const shadowStatuses = ["draft", "ready_for_review", "reviewed", "rejected", "archived"] as const;
+  const shadowCountsByStatus = Object.fromEntries(shadowStatuses.map((status) => [status, shadowPacks.filter((pack) => pack.status === status).length])) as PandoraDashboardData["shadowContextPackLab"]["countsByStatus"];
   const actionStatuses = ["proposed", "dry_ran", "approved", "executing", "completed", "blocked", "failed", "cancelled"] as const;
   const countsByStatus = Object.fromEntries(actionStatuses.map((status) => [status, operatorActions.filter((action) => action.status === status).length])) as PandoraDashboardData["operatorActions"]["countsByStatus"];
   const data = await Promise.all(namespaces.map(async (namespace) => ({
@@ -79,7 +85,7 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     generatedAt: new Date().toISOString(),
     operatorLabel: input.operatorLabel ?? input.userId,
     live: warnings.length === 0,
-    warnings: Array.from(new Set([...warnings, ...verification.warnings])),
+    warnings: Array.from(new Set([...warnings, ...verification.warnings, ...shadowWarnings])),
     hero: { title: "Pandora dashboard is reading live memory state.", description: "This route renders authenticated Supabase data for memory state while semantic retrieval, embeddings, model calls, GPT Actions, and MCP remain gated.", primaryAction: "Context pack data live", secondaryAction: "Retrieval eval Gated" },
     evidence: warnings.length ? "Live dashboard read completed with safe empty states for unavailable tables." : "Live dashboard read complete from server-derived session scope.",
     stats: [
@@ -101,6 +107,7 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     timelineEvents: events.slice(0, 6).map((event) => ({ id: String(event.id ?? `${event.namespace}-${event.created_at ?? "event"}`), title: `${event.namespace} • ${event.status ?? "unknown"}`, time: event.created_at ?? "Live read", desc: eventSummary(event), namespace: event.namespace === "au" ? "au" : "real_life", color: event.namespace === "au" ? "purple" : "emerald" })),
     diagnostics: { coreSystems: [{ label: "Route exposure", value: "Auth gated", state: "healthy" }, { label: "Displayed data", value: warnings.length ? "Partial live reads" : "Live reads", state: warnings.length ? "attention" : "healthy" }, { label: "Master-pack invariant", value: duplicates ? `${duplicates} duplicate` : "OK", state: duplicates ? "attention" : "healthy" }, { label: "Client user_id", value: "Rejected", state: "healthy" }], gatedSystems: [{ label: "Semantic retrieval", value: "Gated Off", state: "gated" }, { label: "Embeddings", value: "Gated Off", state: "gated" }, { label: "Model calls", value: "Gated Off", state: "gated" }, { label: "Pruning automation", value: "Review-only", state: "gated" }], envelope: { title: "Dashboard Truth Envelope", description: warnings.length ? "Unavailable reads were converted to warnings and empty UI state." : "Live loader completed from authenticated Supabase reads." } },
     verification,
+    shadowContextPackLab: { packs: shadowPacks.map((pack) => ({ id: String(pack.id), request_id: String(pack.request_id), operator_action_id: pack.operator_action_id ? String(pack.operator_action_id) : null, namespace: pack.namespace === "au" ? "au" : "real_life", pack_type: String(pack.pack_type ?? "master_candidate"), status: String(pack.status ?? "draft") as never, title: String(pack.title ?? "Shadow context pack"), summary: String(pack.summary ?? ""), source_window: pack.source_window ?? {}, candidate_payload: pack.candidate_payload ?? {}, evidence: pack.evidence ?? {}, warnings: Array.isArray(pack.warnings) ? pack.warnings : [], created_at: String(pack.created_at ?? ""), updated_at: String(pack.updated_at ?? ""), reviewed_at: pack.reviewed_at ?? null, rejected_at: pack.rejected_at ?? null, archived_at: pack.archived_at ?? null })), warnings: shadowWarnings, countsByStatus: shadowCountsByStatus },
     operatorActions: { actions: operatorActions.map((action) => {
       const eventPreview = eventsByAction.get(action.id) ?? [];
       return { id: action.id, request_id: action.request_id, idempotency_key: action.idempotency_key, action_type: action.action_type, namespace: action.namespace, mode: action.mode, status: action.status, title: action.title, description: action.description, result: action.result, warnings: action.warnings, created_at: action.created_at, updated_at: action.updated_at, approved_at: action.approved_at, completed_at: action.completed_at, failed_at: action.failed_at, event_count: eventPreview.length, event_preview: eventPreview.map((event: Row) => ({ id: String(event.id), action_id: String(event.action_id), user_id: String(event.user_id), event_type: String(event.event_type), message: String(event.message), metadata: event.metadata ?? {}, created_at: String(event.created_at) })) };

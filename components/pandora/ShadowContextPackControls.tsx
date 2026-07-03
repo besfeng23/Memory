@@ -1,0 +1,4 @@
+"use client";
+import type { ShadowContextPackSummary } from "./types";
+async function post(id: string, verb: "review" | "reject" | "archive") { await fetch(`/api/pandora/shadow-context-packs/${id}/${verb}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}) }); window.location.reload(); }
+export function ShadowContextPackControls({ pack }: { pack: ShadowContextPackSummary }) { return <div className="pd-action-controls"><button className="button-link button-link--primary" type="button" onClick={() => post(pack.id, "review")}>Mark reviewed</button><button className="button-link" type="button" onClick={() => post(pack.id, "reject")}>Reject</button><button className="button-link" type="button" onClick={() => post(pack.id, "archive")}>Archive</button></div>; }

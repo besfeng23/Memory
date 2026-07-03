@@ -142,8 +142,13 @@ export type PandoraVerificationData = {
 };
 
 
+export type ShadowContextPackStatus = "draft" | "ready_for_review" | "reviewed" | "rejected" | "archived";
+export type ShadowContextPackEvent = { id: string; shadow_pack_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string };
+export type ShadowContextPackSummary = { id: string; request_id: string; operator_action_id?: string | null; namespace: PandoraNamespace; pack_type: string; status: ShadowContextPackStatus; title: string; summary: string; source_window: Record<string, unknown>; candidate_payload: Record<string, unknown>; evidence: Record<string, unknown>; warnings: string[]; created_at: string; updated_at: string; reviewed_at?: string | null; rejected_at?: string | null; archived_at?: string | null; event_preview?: ShadowContextPackEvent[] };
+export type ShadowContextPackLabData = { packs: ShadowContextPackSummary[]; warnings: string[]; countsByStatus: Record<ShadowContextPackStatus, number> };
+
 export type OperatorActionStatus = "proposed" | "dry_ran" | "approved" | "executing" | "completed" | "blocked" | "failed" | "cancelled";
-export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan";
+export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack";
 export type OperatorActionMode = "dry_run" | "queued_only";
 
 export type OperatorActionEventSummary = { id: string; action_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string; };
@@ -202,4 +207,5 @@ export type PandoraDashboardData = {
   };
   verification: PandoraVerificationData;
   operatorActions: OperatorActionCenterData;
+  shadowContextPackLab: ShadowContextPackLabData;
 };
