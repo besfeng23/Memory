@@ -1,0 +1,4 @@
+import { Brain, Gauge, History, ListChecks, MoreHorizontal } from "lucide-react";
+import { mobileNavItems } from "./mock-data";
+const icons = [Gauge, History, ListChecks, Brain, MoreHorizontal];
+export function MobileBottomNav({ activeNav, onNavChange }: { activeNav: string; onNavChange: (item: string) => void }) { return <nav className="pd-mobile-nav" aria-label="Mobile Pandora navigation">{mobileNavItems.map((item, index) => { const Icon = icons[index]; const active = item === activeNav || (item === "Dashboard" && activeNav === "Dashboard"); return <button type="button" key={item} aria-current={active ? "page" : undefined} onClick={() => onNavChange(item === "Feed" ? "Memory Feed" : item)}><span><Icon size={18} aria-hidden="true" />{item === "Queue" ? <i aria-label="Queue has attention items" /> : null}</span>{item}</button>; })}</nav>; }

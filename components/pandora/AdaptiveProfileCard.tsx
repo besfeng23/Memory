@@ -1,0 +1,7 @@
+import { MoreHorizontal, RefreshCw } from "lucide-react";
+
+function ConfidenceRing({ value }: { value: number }) { const radius = 42; const circumference = 2 * Math.PI * radius; const offset = circumference * (1 - value / 100); return <div className="pd-ring"><svg viewBox="0 0 100 100" aria-label={`${value}% confidence`}><circle cx="50" cy="50" r={radius} className="pd-ring-bg" /><circle cx="50" cy="50" r={radius} className="pd-ring-fg" strokeDasharray={circumference} strokeDashoffset={offset} /></svg><strong>{value}%</strong></div>; }
+
+export function AdaptiveProfileCard({ loading }: { loading: boolean }) {
+  return <section className="pd-card"><div className="pd-section-head"><div><p className="pd-label">Adaptive Profile</p><h3>Writer v2</h3></div><span className="pd-pill pd-pill-emerald">Active</span></div>{loading ? <div className="pd-loading" aria-label="Loading adaptive profile" /> : <><div className="pd-profile-main"><ConfidenceRing value={88} /><div><strong>11 memories • 6 preferences • 2 facts</strong><p>Last refreshed 1h ago</p></div></div><div className="pd-traits">{["Analytical", "Methodical", "Private", "Detail-oriented"].map((trait) => <span key={trait}>{trait}</span>)}</div><div className="pd-card-row"><button type="button" className="pd-secondary-btn"><RefreshCw size={16} aria-hidden="true" />Refresh Profile</button><button type="button" className="pd-icon-button" aria-label="More profile options"><MoreHorizontal size={18} aria-hidden="true" /></button></div></>}</section>;
+}
