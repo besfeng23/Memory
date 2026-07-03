@@ -39,19 +39,77 @@ export function extractRisks(events: MemoryEvent[]) {
   return topEvents(events.filter((event) => includesAny(event.raw_text, riskWords)), 10).map((event) => ({ event_id: event.id, text: asSentence(event.raw_text), source: event.source, sensitivity: event.sensitivity ?? "medium" }));
 }
 
-export function extractPeopleMentions(events: MemoryEvent[]) {
-  const people = new Map<string, { name: string; event_ids: string[]; notes: string[] }>();
+// Roadmap Sprint 1 (#1 — stabilize output): stoplist junk entities, dedupe event ids, merge
+// single-token aliases into their full name, and cap sizes so people_map stays sharp instead
+// of dumping every capitalized sentence-opener as a "person".
+const MAX_PEOPLE = 12;
+const MAX_EVENT_IDS_PER_PERSON = 8;
+
+// Capitalized words that are pronouns / imperatives / sentence-openers / domain labels and
+// must never be treated as a person's name.
+const PERSON_NAME_STOPWORDS = new Set<string>([
+  "the", "a", "an", "this", "that", "these", "those", "it", "its",
+  "he", "him", "his", "she", "her", "hers", "they", "them", "their", "we", "us", "our", "ours", "you", "your", "yours", "i", "me", "my", "mine",
+  "do", "don", "dont", "does", "did", "doing", "done", "use", "using", "used", "add", "set", "make", "made", "ask", "treat", "note", "source",
+  "keep", "avoid", "preserve", "allow", "allowed", "required", "reinforced", "working", "current", "best", "direction", "essential", "future", "important",
+  "if", "when", "then", "else", "and", "but", "or", "nor", "for", "so", "yet", "not", "no", "yes", "never", "always", "only", "also",
+  "before", "during", "after", "every", "each", "all", "any", "some", "main", "core", "both", "new", "old",
+  "rule", "rules", "story", "scene", "scenes", "style", "canon", "user", "users", "taglish", "status",
+  "pandora", "chatgpt", "memory",
+]);
+
+type PersonEntry = { name: string; event_ids: string[]; notes: string[] };
+
+function isLikelyPersonName(name: string): boolean {
+  const tokens = name.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return false;
+  if (PERSON_NAME_STOPWORDS.has(tokens[0].toLowerCase())) return false;
+  if (tokens.length === 1) return tokens[0].length >= 3;
+  return true;
+}
+
+// Merge a single-token name (e.g. "Janine") into a multi-token name that starts with it
+// (e.g. "Janine Tan"). Distinct aliases with no shared full name (e.g. "Jana") stay separate.
+function canonicalizePeople(people: Map<string, PersonEntry>): PersonEntry[] {
+  const entries = [...people.values()];
+  const multi = entries.filter((entry) => entry.name.includes(" "));
+  const kept: PersonEntry[] = [];
+  for (const entry of entries) {
+    if (!entry.name.includes(" ")) {
+      const target = multi.find((m) => m.name.split(/\s+/)[0].toLowerCase() === entry.name.toLowerCase());
+      if (target && target !== entry) {
+        for (const id of entry.event_ids) if (!target.event_ids.includes(id)) target.event_ids.push(id);
+        for (const note of entry.notes) if (target.notes.length < 2 && !target.notes.includes(note)) target.notes.push(note);
+        continue;
+      }
+    }
+    kept.push(entry);
+  }
+  return kept;
+}
+
+export function extractPeopleMentions(events: MemoryEvent[], opts: { maxPeople?: number; maxEventIdsPerPerson?: number } = {}) {
+  const maxPeople = opts.maxPeople ?? MAX_PEOPLE;
+  const maxIds = opts.maxEventIdsPerPerson ?? MAX_EVENT_IDS_PER_PERSON;
+  const people = new Map<string, PersonEntry>();
   for (const event of events) {
-    for (const match of event.raw_text.matchAll(/\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)?\b/g)) {
-      const name = match[0];
-      if (["Pandora", "ChatGPT", "Memory"].includes(name)) continue;
+    // One event contributes each distinct name at most once (no per-occurrence id duplication).
+    const namesInEvent = new Set<string>();
+    for (const match of event.raw_text.matchAll(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\b/g)) {
+      const name = match[0].trim();
+      if (isLikelyPersonName(name)) namesInEvent.add(name);
+    }
+    for (const name of namesInEvent) {
       const entry = people.get(name) ?? { name, event_ids: [], notes: [] };
-      entry.event_ids.push(event.id);
+      if (!entry.event_ids.includes(event.id)) entry.event_ids.push(event.id);
       if (entry.notes.length < 2) entry.notes.push(asSentence(event.raw_text));
       people.set(name, entry);
     }
   }
-  return [...people.values()].sort((a, b) => b.event_ids.length - a.event_ids.length).slice(0, 12);
+  return canonicalizePeople(people)
+    .sort((a, b) => b.event_ids.length - a.event_ids.length || a.name.localeCompare(b.name))
+    .slice(0, maxPeople)
+    .map((entry) => ({ name: entry.name, event_ids: entry.event_ids.slice(0, maxIds), notes: entry.notes }));
 }
 
 export function extractProjectMentions(events: MemoryEvent[]) {
@@ -91,8 +149,31 @@ export function buildMasterContextPack(namespace: MemoryBridgeNamespace, userId:
   };
 }
 
-export function compactContextResponse(pack: MemoryContextPack | null, events: MemoryEvent[], input: { include_risks?: boolean; include_people?: boolean; include_projects?: boolean }) {
-  return {
+const DEFAULT_MAX_PAYLOAD_CHARS = 12000;
+function payloadChars(value: unknown): number { return JSON.stringify(value).length; }
+
+// Progressive, deterministic slimming so a context response never dumps a giant payload.
+// Trims the heaviest fields first (people event ids/notes), then list lengths, then the summary.
+function slimContextResponse(response: Record<string, unknown>, maxChars: number): Record<string, unknown> {
+  const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+  if (payloadChars(response) <= maxChars) return response;
+  response.people_map = list(response.people_map).map((person) => {
+    const p = (person ?? {}) as Record<string, unknown>;
+    return { ...p, event_ids: list(p.event_ids).slice(0, 3), notes: list(p.notes).slice(0, 1) };
+  });
+  if (payloadChars(response) <= maxChars) return response;
+  response.key_points = list(response.key_points).slice(0, 6);
+  response.open_loops = list(response.open_loops).slice(0, 6);
+  response.risks = list(response.risks).slice(0, 6);
+  response.active_projects = list(response.active_projects).slice(0, 6);
+  if (payloadChars(response) <= maxChars) return response;
+  response.people_map = list(response.people_map).slice(0, 6);
+  response.summary = String(response.summary ?? "").slice(0, 1200);
+  return response;
+}
+
+export function compactContextResponse(pack: MemoryContextPack | null, events: MemoryEvent[], input: { include_risks?: boolean; include_people?: boolean; include_projects?: boolean; max_payload_chars?: number; debug?: boolean }) {
+  const response = {
     title: pack?.title ?? "Pandora context pack unavailable",
     summary: pack?.summary ?? summarizeEventsDeterministically(events),
     key_points: pack?.key_points ?? keyPoints(events),
@@ -107,4 +188,7 @@ export function compactContextResponse(pack: MemoryContextPack | null, events: M
       "Ask before storing new long-term memories.",
     ],
   };
+  // debug mode returns the full payload; default responses are capped to stay compact.
+  if (input.debug) return response;
+  return slimContextResponse(response, Math.max(2000, Number(input.max_payload_chars ?? DEFAULT_MAX_PAYLOAD_CHARS)));
 }
