@@ -16,7 +16,7 @@ export const workQueue: WorkQueueData = { needsReview: 0, openLoops: 0, stalePac
 
 export const timelineEvents = [
   { id: "one", icon: BadgeCheck, color: "slate", title: "One", time: "Now", desc: "Fixture" },
-];
+] as const;
 
 export const coreSystems: SystemRow[] = [
   { label: "One", value: "OK", state: "healthy" },
