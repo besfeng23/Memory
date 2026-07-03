@@ -5,6 +5,8 @@ import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PandoraDashboard } from "@/components/pandora/PandoraDashboard";
 import { resolvePandoraServerSession } from "@/lib/auth/pandora-server-session-resolver";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadPandoraDashboardData, type PandoraDashboardDbClient } from "@/lib/services/pandora-dashboard-service";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +29,7 @@ export default async function PandoraPage() {
               <StatusBadge status="blocked" />
               <div>
                 <h3>Unauthenticated request blocked</h3>
-                <p>Use a server-visible Supabase session before opening the Pandora dashboard. The dashboard remains mock-only even after login until backed by real routes, schema, RLS, and tests.</p>
+                <p>Use a server-visible Supabase session before opening the Pandora dashboard. Dashboard reads are server-derived and reject client-supplied user_id values.</p>
                 <div className="browser-state-grid">
                   {session.blockers.map((blocker) => (
                     <span className="browser-state-pill browser-state-pill--blocked" key={blocker.code}>{blocker.message}</span>
@@ -46,5 +48,11 @@ export default async function PandoraPage() {
     );
   }
 
-  return <PandoraDashboard operatorLabel={session.session.email ?? session.session.userId} />;
+  const supabase = await createSupabaseServerClient();
+  const dashboardData = await loadPandoraDashboardData(supabase as unknown as PandoraDashboardDbClient, {
+    userId: session.session.userId,
+    operatorLabel: session.session.email ?? session.session.userId,
+  });
+
+  return <PandoraDashboard dashboardData={dashboardData} />;
 }
