@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PandoraDashboardData } from "@/components/pandora/types";
+import { loadPandoraVerificationData } from "@/lib/services/pandora-verification-service";
 
 export type PandoraDashboardDbClient = { from: (table: string) => any };
 type Namespace = "real_life" | "au";
@@ -36,6 +37,7 @@ function eventSummary(event: Row) {
 
 export async function loadPandoraDashboardData(client: PandoraDashboardDbClient, input: { userId: string; operatorLabel?: string }): Promise<PandoraDashboardData> {
   const warnings: string[] = [];
+  const verification = await loadPandoraVerificationData(client, { userId: input.userId });
   const data = await Promise.all(namespaces.map(async (namespace) => ({
     namespace,
     events: await rows(client, "memory_events", input.userId, namespace, warnings, 500),
@@ -61,7 +63,7 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     generatedAt: new Date().toISOString(),
     operatorLabel: input.operatorLabel ?? input.userId,
     live: warnings.length === 0,
-    warnings,
+    warnings: Array.from(new Set([...warnings, ...verification.warnings])),
     hero: { title: "Pandora dashboard is reading live memory state.", description: "This route renders authenticated Supabase data for memory state while semantic retrieval, embeddings, model calls, GPT Actions, and MCP remain gated.", primaryAction: "Context pack data live", secondaryAction: "Retrieval eval Gated" },
     evidence: warnings.length ? "Live dashboard read completed with safe empty states for unavailable tables." : "Live dashboard read complete from server-derived session scope.",
     stats: [
@@ -82,5 +84,6 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     profileSnapshot: { name: profile?.title ?? "No active profile", status: profile ? "Live read" : "No live data", confidencePercent: confidence.percent, confidenceLabel: confidence.label, summary: profile?.summary ?? "No active adaptive profile returned for this session.", lastRefreshed: profile?.updated_at ?? "No profile timestamp returned", traits: ["Authenticated", "RLS scoped"], evidence: profile?.id ? `Live profile row ${profile.id}` : "No active profile row" },
     timelineEvents: events.slice(0, 6).map((event) => ({ id: String(event.id ?? `${event.namespace}-${event.created_at ?? "event"}`), title: `${event.namespace} • ${event.status ?? "unknown"}`, time: event.created_at ?? "Live read", desc: eventSummary(event), namespace: event.namespace === "au" ? "au" : "real_life", color: event.namespace === "au" ? "purple" : "emerald" })),
     diagnostics: { coreSystems: [{ label: "Route exposure", value: "Auth gated", state: "healthy" }, { label: "Displayed data", value: warnings.length ? "Partial live reads" : "Live reads", state: warnings.length ? "attention" : "healthy" }, { label: "Master-pack invariant", value: duplicates ? `${duplicates} duplicate` : "OK", state: duplicates ? "attention" : "healthy" }, { label: "Client user_id", value: "Rejected", state: "healthy" }], gatedSystems: [{ label: "Semantic retrieval", value: "Gated Off", state: "gated" }, { label: "Embeddings", value: "Gated Off", state: "gated" }, { label: "Model calls", value: "Gated Off", state: "gated" }, { label: "Pruning automation", value: "Review-only", state: "gated" }], envelope: { title: "Dashboard Truth Envelope", description: warnings.length ? "Unavailable reads were converted to warnings and empty UI state." : "Live loader completed from authenticated Supabase reads." } },
+    verification,
   };
 }
