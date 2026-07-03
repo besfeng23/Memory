@@ -1,0 +1,22 @@
+.root {}
+
+:global(.pd-sr-only) {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+:global(.pd-primary-btn:disabled) {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+@media (max-width: 900px) {
+  :global(.pd-shell) {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+}
