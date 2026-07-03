@@ -34,6 +34,7 @@ const data: PandoraDashboardData = {
   timelineEvents: [{ id: "event", title: "real_life • captured", time: "now", desc: "Live event summary", namespace: "real_life", color: "emerald" }],
   diagnostics: { coreSystems: [{ label: "Displayed data", value: "Live reads", state: "healthy" }], gatedSystems: [{ label: "Semantic retrieval", value: "Gated Off", state: "gated" }], envelope: { title: "Dashboard Truth Envelope", description: "Live loader completed" } },
   verification,
+  operatorActions: { actions: [], warnings: [] },
 };
 
 describe("PandoraDashboard", () => {

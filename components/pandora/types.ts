@@ -141,6 +141,32 @@ export type PandoraVerificationData = {
   warnings: string[];
 };
 
+
+export type OperatorActionStatus = "proposed" | "dry_ran" | "queued" | "blocked" | "completed" | "failed" | "cancelled";
+export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan";
+export type OperatorActionMode = "dry_run" | "queued_only";
+
+export type OperatorActionSummary = {
+  id: string;
+  request_id: string;
+  idempotency_key: string;
+  action_type: OperatorActionType;
+  namespace: PandoraNamespace | null;
+  mode: OperatorActionMode;
+  status: OperatorActionStatus;
+  title: string;
+  description: string;
+  result: Record<string, unknown>;
+  warnings: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type OperatorActionCenterData = {
+  actions: OperatorActionSummary[];
+  warnings: string[];
+};
+
 export type PandoraDashboardData = {
   generatedAt: string;
   operatorLabel: string;
@@ -167,4 +193,5 @@ export type PandoraDashboardData = {
     };
   };
   verification: PandoraVerificationData;
+  operatorActions: OperatorActionCenterData;
 };

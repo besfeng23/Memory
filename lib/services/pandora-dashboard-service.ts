@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PandoraDashboardData } from "@/components/pandora/types";
 import { loadPandoraVerificationData } from "@/lib/services/pandora-verification-service";
+import { listOperatorActions } from "@/lib/services/pandora-operator-action-service";
 
 export type PandoraDashboardDbClient = { from: (table: string) => any };
 type Namespace = "real_life" | "au";
@@ -38,6 +39,7 @@ function eventSummary(event: Row) {
 export async function loadPandoraDashboardData(client: PandoraDashboardDbClient, input: { userId: string; operatorLabel?: string }): Promise<PandoraDashboardData> {
   const warnings: string[] = [];
   const verification = await loadPandoraVerificationData(client, { userId: input.userId });
+  const operatorActions = await listOperatorActions(client, { userId: input.userId, limit: 10 });
   const data = await Promise.all(namespaces.map(async (namespace) => ({
     namespace,
     events: await rows(client, "memory_events", input.userId, namespace, warnings, 500),
@@ -85,5 +87,6 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     timelineEvents: events.slice(0, 6).map((event) => ({ id: String(event.id ?? `${event.namespace}-${event.created_at ?? "event"}`), title: `${event.namespace} • ${event.status ?? "unknown"}`, time: event.created_at ?? "Live read", desc: eventSummary(event), namespace: event.namespace === "au" ? "au" : "real_life", color: event.namespace === "au" ? "purple" : "emerald" })),
     diagnostics: { coreSystems: [{ label: "Route exposure", value: "Auth gated", state: "healthy" }, { label: "Displayed data", value: warnings.length ? "Partial live reads" : "Live reads", state: warnings.length ? "attention" : "healthy" }, { label: "Master-pack invariant", value: duplicates ? `${duplicates} duplicate` : "OK", state: duplicates ? "attention" : "healthy" }, { label: "Client user_id", value: "Rejected", state: "healthy" }], gatedSystems: [{ label: "Semantic retrieval", value: "Gated Off", state: "gated" }, { label: "Embeddings", value: "Gated Off", state: "gated" }, { label: "Model calls", value: "Gated Off", state: "gated" }, { label: "Pruning automation", value: "Review-only", state: "gated" }], envelope: { title: "Dashboard Truth Envelope", description: warnings.length ? "Unavailable reads were converted to warnings and empty UI state." : "Live loader completed from authenticated Supabase reads." } },
     verification,
+    operatorActions: { actions: operatorActions.map((action) => ({ id: action.id, request_id: action.request_id, idempotency_key: action.idempotency_key, action_type: action.action_type, namespace: action.namespace, mode: action.mode, status: action.status, title: action.title, description: action.description, result: action.result, warnings: action.warnings, created_at: action.created_at, updated_at: action.updated_at })), warnings: operatorActions.flatMap((action) => action.warnings ?? []) },
   };
 }

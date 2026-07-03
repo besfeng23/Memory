@@ -11,6 +11,7 @@ import { Sidebar } from "./Sidebar";
 import { StatCard } from "./StatCard";
 import { TopBar } from "./TopBar";
 import { VerificationConsoleCard } from "./VerificationConsoleCard";
+import { OperatorActionCenterCard } from "./OperatorActionCenterCard";
 import { WorkQueueCard } from "./WorkQueueCard";
 import type { PandoraDashboardData, StatItem } from "./types";
 import { useState } from "react";
@@ -43,6 +44,7 @@ export function PandoraDashboard({ dashboardData }: { dashboardData: PandoraDash
             {stats.map((stat) => <StatCard stat={stat} key={stat.id} />)}
           </section>
           <VerificationConsoleCard verification={dashboardData.verification} />
+          <OperatorActionCenterCard data={dashboardData.operatorActions} />
           <div className="pd-dashboard-grid">
             <div className="pd-dashboard-col pd-dashboard-col-wide">
               <MemorySpacesCard spaces={dashboardData.memorySpaces} />
