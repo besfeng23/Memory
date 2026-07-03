@@ -13,7 +13,7 @@ import { StatCard } from "./StatCard";
 import { TopBar } from "./TopBar";
 import { WorkQueueCard } from "./WorkQueueCard";
 
-export function PandoraDashboard() {
+export function PandoraDashboard({ operatorLabel: _operatorLabel }: { operatorLabel?: string } = {}) {
   const [activeNav, setActiveNav] = useState("Dashboard");
   const [isSimulatingLoad, setIsSimulatingLoad] = useState(true);
 
