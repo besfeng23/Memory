@@ -21,8 +21,8 @@ export const mockStats: StatItem[] = [
 ];
 
 export const memorySpaces: MemorySpace[] = [
-  { id: "real_life", label: "real_life", type: "Primary Space", description: "Business, projects, technical state, and personal operating context. Counts stay hidden until backed by authenticated reads.", memories: 0, people: 0, projects: 0, status: "Active", color: "emerald" },
-  { id: "au", label: "au", type: "Isolated Space", description: "Alternate-universe context, scenarios, canon, and fictionalized work. Counts stay hidden until backed by authenticated reads.", memories: 0, people: 0, projects: 0, status: "Active", color: "purple" },
+  { id: "real_life", label: "real_life", type: "Primary Space", description: "Business, projects, technical state, and personal operating context. Counts stay hidden until backed by authenticated reads.", memories: 0, people: 0, projects: 0, status: "Degraded", color: "emerald" },
+  { id: "au", label: "au", type: "Isolated Space", description: "Alternate-universe context, scenarios, canon, and fictionalized work. Counts stay hidden until backed by authenticated reads.", memories: 0, people: 0, projects: 0, status: "Degraded", color: "purple" },
 ];
 
 export const workQueue: WorkQueueData = { needsReview: 0, openLoops: 0, stalePacks: 0, failedTests: 0, profileRefreshDue: 0, packSupersessionNeeded: 0, peopleMapDesignNeeded: 0 };
