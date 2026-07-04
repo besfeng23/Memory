@@ -1,0 +1,3 @@
+import type { ShadowPackRiskSummary as Risk } from "./types";
+const tone = { low: "pd-pill-emerald", medium: "pd-pill-amber", high: "pd-pill-red", blocked: "pd-pill-red" } as const;
+export function ShadowPackRiskSummary({ risk }: { risk: Risk }) { return <div><span className={`pd-pill ${tone[risk.status]}`}>{risk.status} risk • {risk.score}/100</span>{risk.blockers.length ? <div className="pd-warning-list">{risk.blockers.map((b) => <p key={b}>⛔ {b}</p>)}</div> : null}{risk.warnings.length ? <div className="pd-warning-list">{risk.warnings.map((w) => <p key={w}>⚠ {w}</p>)}</div> : null}<ul>{risk.reasons.map((r) => <li key={r}>{r}</li>)}</ul></div>; }

@@ -65,3 +65,7 @@ Any future live action needs a separate reviewed PR, protected dry-run output, e
 ## Shadow staging exception
 
 The existing verification actions remain read-only. `prepare_shadow_context_pack` is the only staged write exception in this phase: after approval/execution it inserts a shadow candidate in `pandora_shadow_context_packs` and a matching shadow event. This is not a production context-pack promotion and cannot update `memory_context_packs`.
+
+## Preflight action
+
+`prepare_shadow_pack_preflight` dry-runs deterministic diff/risk calculation. Approved execution writes/refreshes only preflight review tables and events, with `no_core_memory_mutation_performed` and `no_promotion_performed` true.

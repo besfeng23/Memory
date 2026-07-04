@@ -35,3 +35,7 @@ The service reads recent namespace-scoped `memory_events`, active master pack me
 ## Future path
 
 A future human-approved promotion path would require a separate PR, explicit review, additional migration/policy review, dry-run proof, and production approval. It is intentionally not implemented here.
+
+## Shadow pack preflight handoff
+
+Shadow candidates can now be compared through Shadow Pack Preflight. The lab may create or refresh a preflight, but it still does not promote, replace, merge, distill, prune, or delete production memory rows.

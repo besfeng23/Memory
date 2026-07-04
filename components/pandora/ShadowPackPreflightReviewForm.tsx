@@ -1,0 +1,5 @@
+"use client";
+import { useState } from "react";
+import type { ShadowPackPreflightSummary } from "./types";
+async function save(id: string, reviewer_notes: string, reviewer_decision: string) { await fetch(`/api/pandora/shadow-pack-preflights/${id}/review`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reviewer_notes, reviewer_decision }) }); window.location.reload(); }
+export function ShadowPackPreflightReviewForm({ preflight }: { preflight: ShadowPackPreflightSummary }) { const [notes, setNotes] = useState(preflight.reviewer_notes ?? ""); return <div className="pd-action-controls"><textarea aria-label="Reviewer notes" value={notes} onChange={(e)=>setNotes(e.target.value)} placeholder="Reviewer notes" /><button className="button-link" onClick={()=>save(preflight.id, notes, "needs_changes")}>Mark needs changes</button><button className="button-link button-link--primary" onClick={()=>save(preflight.id, notes, "approved_for_promotion")}>Approve for future promotion (NOT promotion)</button><button className="button-link" onClick={()=>save(preflight.id, notes, "blocked")}>Block</button></div>; }
