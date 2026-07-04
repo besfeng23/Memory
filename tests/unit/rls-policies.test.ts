@@ -14,6 +14,11 @@ const rlsSql = migrationFiles
   .toLowerCase()
   .replace(/\s+/g, " ");
 
+const adaptiveLogRlsSql = readFileSync(
+  path.resolve(process.cwd(), "supabase/migrations/20260704103859_adaptive_log_rls_policies.sql"),
+  "utf8",
+).toLowerCase().replace(/\s+/g, " ");
+
 const requiredTables = [
   "memory_items",
   "memory_sources",
@@ -69,5 +74,14 @@ describe("RLS policy migrations", () => {
   it("does not add direct mutation policies beyond the foundation create path", () => {
     expect(rlsSql).not.toContain(` for ${changeOperation} `);
     expect(rlsSql).not.toContain(` for ${removeOperation} `);
+  });
+
+  it("covers adaptive memory log tables created after the foundation migrations", () => {
+    for (const tableName of ["memory_retrieval_logs", "memory_model_call_logs"]) {
+      expect(adaptiveLogRlsSql).toContain(`alter table public.${tableName} enable row level security`);
+      expect(adaptiveLogRlsSql).toContain(`alter table public.${tableName} force row level security`);
+      expect(adaptiveLogRlsSql).toContain(`create policy "${tableName}_select_own" on public.${tableName} for select to authenticated using ((select auth.uid()) = user_id)`);
+      expect(adaptiveLogRlsSql).toContain(`create policy "${tableName}_insert_own" on public.${tableName} for insert to authenticated with check ((select auth.uid()) = user_id)`);
+    }
   });
 });
