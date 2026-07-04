@@ -15,7 +15,7 @@ const rlsSql = migrationFiles
   .replace(/\s+/g, " ");
 
 const adaptiveLogRlsSql = readFileSync(
-  path.resolve(process.cwd(), "supabase/migrations/20260704103859_adaptive_log_rls_policies.sql"),
+  path.resolve(process.cwd(), "supabase/migrations/20260704114354_adaptive_log_rls_policies.sql"),
   "utf8",
 ).toLowerCase().replace(/\s+/g, " ");
 
