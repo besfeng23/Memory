@@ -1,7 +1,29 @@
 import { getEnvBrokerStatus, PHASE5A_QUEUE_SAFE, PHASE5C_SAFE_PRODUCTION } from "@/lib/services/env-broker-service";
 import { buildEnvDriftReport } from "@/lib/services/env-drift-service";
+import { requireEnvAdmin } from "@/lib/services/env-admin-route-guard";
+
+export const dynamic = "force-dynamic";
+
+function LockedEnvBrokerPage() {
+  return <main style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
+    <h1>Pandora Env Broker</h1>
+    <p>Env Broker access is locked. Use an env-admin Supabase session or an internal operator unlock token.</p>
+    <section style={{ border: "1px solid #ddd", padding: 12, maxWidth: 760 }}>
+      <h2>Operator unlock</h2>
+      <p>The key is accepted server-side, stored only in an HttpOnly cookie for 30 minutes, and is never rendered back to the page.</p>
+      <form method="post" action="/api/admin/env/status">
+        <label>Operator key <input name="operator_key" type="password" placeholder="Paste operator key once" style={{ minWidth: 320 }} /></label>
+        <button type="submit">Unlock Env Broker actions</button>
+      </form>
+    </section>
+    <p><a href="/auth/login?next=%2Fadmin%2Fenv">Start Supabase session</a></p>
+  </main>;
+}
 
 export default async function AdminEnvPage() {
+  const guard = await requireEnvAdmin(false);
+  if (guard.response) return <LockedEnvBrokerPage />;
+
   const status = getEnvBrokerStatus();
   const drift = await buildEnvDriftReport();
   const driftColor = drift.severity === "green" ? "#0a7f27" : drift.severity === "yellow" ? "#9a6700" : "#b42318";
@@ -11,7 +33,7 @@ export default async function AdminEnvPage() {
 
     <section style={{ border: "1px solid #ddd", padding: 12, maxWidth: 760 }}>
       <h2>Operator unlock</h2>
-      <p>Mutation buttons require either a Supabase session or an operator unlock. The key is accepted server-side, stored only in an HttpOnly cookie for 30 minutes, and is never rendered back to the page.</p>
+      <p>Mutation buttons require an env-admin Supabase session or an operator unlock. The key is accepted server-side, stored only in an HttpOnly cookie for 30 minutes, and is never rendered back to the page.</p>
       <form method="post" action="/api/admin/env/status">
         <label>Operator key <input name="operator_key" type="password" placeholder="Paste operator key once" style={{ minWidth: 320 }} /></label>
         <button type="submit">Unlock Env Broker actions</button>

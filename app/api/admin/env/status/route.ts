@@ -15,6 +15,6 @@ export async function POST(request: NextRequest) {
   if (!valid) return NextResponse.json({ ok: false, error: { code: "invalid_operator_key", message: "Env Broker operator unlock was not accepted." } }, { status: 401 });
 
   const response = NextResponse.redirect(new URL("/admin/env", request.url), { status: 303 });
-  response.cookies.set({ name: ENV_ADMIN_COOKIE_NAME, value: candidate, httpOnly: true, sameSite: "strict", secure: true, path: "/api/admin/env", maxAge: 60 * 30 });
+  response.cookies.set({ name: ENV_ADMIN_COOKIE_NAME, value: candidate, httpOnly: true, sameSite: "strict", secure: true, path: "/", maxAge: 60 * 30 });
   return response;
 }

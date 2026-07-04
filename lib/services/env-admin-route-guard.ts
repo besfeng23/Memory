@@ -1,10 +1,13 @@
 import { timingSafeEqual } from "crypto";
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
+import type { User } from "@supabase/supabase-js";
 import { requireApiUser } from "@/lib/security/api-auth";
 import { isBrokerEnabled } from "@/lib/services/env-broker-service";
 
 export const ENV_ADMIN_COOKIE_NAME = "pandora_env_admin";
+const ENV_ADMIN_CAPABILITIES = new Set(["env:admin", "env:broker", "admin:env", "pandora:env"]);
+const ENV_ADMIN_ROLES = new Set(["admin", "env_admin"]);
 
 export type EnvAdminActor = {
   id: string;
@@ -12,11 +15,19 @@ export type EnvAdminActor = {
 };
 
 export async function requireEnvAdmin(mutation = true): Promise<{ user: EnvAdminActor | null; response: NextResponse | null }> {
-  const auth = await requireApiUser();
-  let user: EnvAdminActor | null = auth.response ? null : { id: auth.user.id, authType: "supabase" };
+  let user: EnvAdminActor | null = null;
 
-  if (!user && (await hasValidEnvAdminOperatorToken())) {
+  if (await hasValidEnvAdminOperatorToken()) {
     user = { id: "env-operator-token", authType: "operator_token" };
+  } else {
+    const auth = await requireApiUser();
+    if (auth.response) {
+      return { user: null, response: NextResponse.json({ ok: false, error: { code: "unauthenticated", message: "Env Broker operator unlock required." } }, { status: 401 }) };
+    }
+    if (!hasEnvAdminCapability(auth.user)) {
+      return { user: null, response: NextResponse.json({ ok: false, error: { code: "forbidden", message: "Env Broker admin capability required." } }, { status: 403 }) };
+    }
+    user = { id: auth.user.id, authType: "supabase" };
   }
 
   if (!user) {
@@ -28,6 +39,18 @@ export async function requireEnvAdmin(mutation = true): Promise<{ user: EnvAdmin
   }
 
   return { user, response: null };
+}
+
+export function hasEnvAdminCapability(user: Pick<User, "app_metadata"> | null | undefined): boolean {
+  const metadata = user?.app_metadata;
+  if (!metadata || typeof metadata !== "object") return false;
+
+  const role = typeof metadata.role === "string" ? metadata.role : "";
+  if (ENV_ADMIN_ROLES.has(role)) return true;
+
+  const capabilities = Array.isArray(metadata.adminCapabilities) ? metadata.adminCapabilities : [];
+  const roles = Array.isArray(metadata.roles) ? metadata.roles : [];
+  return [...capabilities, ...roles].some((value) => typeof value === "string" && ENV_ADMIN_CAPABILITIES.has(value));
 }
 
 export async function hasValidEnvAdminOperatorToken(): Promise<boolean> {
