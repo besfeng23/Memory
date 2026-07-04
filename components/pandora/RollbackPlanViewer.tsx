@@ -1,0 +1,2 @@
+import type { RollbackPlanSummary } from "./types";
+export function RollbackPlanViewer({ plan }: { plan: RollbackPlanSummary }) { return <div className="pd-mini"><strong>Rollback plan</strong><p>Rollback execution available: {String(plan.rollback_execution_available)}</p><ol>{(plan.steps ?? []).map((s)=><li key={s}>{s}</li>)}</ol><p className="pd-muted">Available after future promotion: {String(plan.rollback_available_after_future_promotion)}</p></div>; }

@@ -5,15 +5,16 @@ import { loadPandoraDashboardData } from "@/lib/services/pandora-dashboard-servi
 import { loadPandoraVerificationData } from "@/lib/services/pandora-verification-service";
 import { createShadowContextPackCandidate, dryRunShadowContextPackCandidate } from "@/lib/services/pandora-shadow-context-pack-service";
 import { computeShadowPackPreflight, createOrRefreshShadowPackPreflight } from "@/lib/services/pandora-shadow-pack-preflight-service";
+import { buildPromotionRequestPlan, createOrRefreshPromotionRequest } from "@/lib/services/pandora-promotion-request-service";
 
-export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack" | "prepare_shadow_pack_preflight";
+export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack" | "prepare_shadow_pack_preflight" | "prepare_promotion_request";
 export type OperatorActionMode = "dry_run" | "queued_only";
 export type OperatorActionStatus = "proposed" | "dry_ran" | "approved" | "executing" | "completed" | "blocked" | "failed" | "cancelled";
 export type OperatorActionRow = { id: string; user_id: string; request_id: string; idempotency_key: string; action_type: OperatorActionType; namespace: PandoraNamespace | null; mode: OperatorActionMode; status: OperatorActionStatus; title: string; description: string; payload: Record<string, unknown>; result: Record<string, unknown>; warnings: string[]; created_at: string; updated_at: string; approved_at?: string | null; completed_at?: string | null; failed_at?: string | null };
 export type OperatorActionEventRow = { id: string; action_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string };
 export type OperatorActionDbClient = { from: (table: string) => any };
 
-const ACTIONS = new Set<OperatorActionType>(["verify_namespace_invariants", "verify_pack_supersession", "check_retrieval_eval_status", "refresh_dashboard_snapshot", "prepare_distill_smoke_plan", "prepare_shadow_context_pack", "prepare_shadow_pack_preflight"]);
+const ACTIONS = new Set<OperatorActionType>(["verify_namespace_invariants", "verify_pack_supersession", "check_retrieval_eval_status", "refresh_dashboard_snapshot", "prepare_distill_smoke_plan", "prepare_shadow_context_pack", "prepare_shadow_pack_preflight", "prepare_promotion_request"]);
 const MODES = new Set<OperatorActionMode>(["dry_run", "queued_only"]);
 const NAMESPACES = new Set(["real_life", "au"]);
 
@@ -73,6 +74,12 @@ async function buildDryRunResult(client: OperatorActionDbClient, userId: string,
     const built = await computeShadowPackPreflight(client, { userId, shadowPackId, requestId: action.request_id });
     return { warnings: built.warnings, result: { checked: "shadow_pack_preflight", shadow_pack_id: shadowPackId, risk_status: built.risk_summary.status, diff_summary: built.diff_summary, risk_summary: built.risk_summary, no_core_memory_mutation_performed: true, no_promotion_performed: true, preflight_write_performed: false } };
   }
+  if (action.action_type === "prepare_promotion_request") {
+    const preflightId = typeof action.payload?.preflight_id === "string" ? action.payload.preflight_id : "";
+    if (!preflightId) throw new Error("prepare_promotion_request requires payload.preflight_id");
+    const built = await buildPromotionRequestPlan(client, { userId, preflightId, requestId: action.request_id });
+    return { warnings: built.warnings, result: { checked: "promotion_request", preflight_id: preflightId, shadow_pack_id: built.shadow.id, promotion_plan: built.promotion_plan, rollback_plan: built.rollback_plan, risk_snapshot: built.risk_snapshot, diff_snapshot: built.diff_snapshot, promotion_execution_available: false, no_core_memory_mutation_performed: true, no_promotion_performed: true, promotion_request_write_performed: false } };
+  }
   if (action.action_type === "prepare_shadow_context_pack") {
     if (!action.namespace) throw new Error("prepare_shadow_context_pack requires a namespace");
     const candidate = await dryRunShadowContextPackCandidate(client, { userId, namespace: action.namespace, sourceWindow: action.payload?.source_window as Record<string, unknown> | undefined });
@@ -125,6 +132,13 @@ export async function executeApprovedOperatorAction(client: OperatorActionDbClie
       const preflight = await createOrRefreshShadowPackPreflight(client, { userId: input.userId, shadowPackId, requestId: executing.request_id });
       built = { warnings: preflight.warnings, result: { checked: "shadow_pack_preflight", preflight_id: preflight.id, shadow_pack_id: shadowPackId, risk_status: preflight.risk_summary.status, no_core_memory_mutation_performed: true, no_promotion_performed: true, preflight_write_performed: true } };
       await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "shadow_pack_preflight_created", message: "Shadow pack preflight created/refreshed only; no production context pack mutation performed.", metadata: built.result });
+    }
+    if (executing.action_type === "prepare_promotion_request") {
+      const preflightId = typeof executing.payload?.preflight_id === "string" ? executing.payload.preflight_id : "";
+      if (!preflightId) throw new Error("prepare_promotion_request requires payload.preflight_id");
+      const request = await createOrRefreshPromotionRequest(client, { userId: input.userId, preflightId, requestId: executing.request_id });
+      built = { warnings: request.warnings, result: { checked: "promotion_request", promotion_request_id: request.id, preflight_id: request.preflight_id, shadow_pack_id: request.shadow_pack_id, promotion_execution_available: false, no_core_memory_mutation_performed: true, no_promotion_performed: true, promotion_request_write_performed: true } };
+      await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "promotion_request_prepared", message: "Promotion request created/refreshed only; no production context pack mutation or promotion performed.", metadata: built.result });
     }
     if (executing.action_type === "prepare_shadow_context_pack") {
       if (!executing.namespace) throw new Error("prepare_shadow_context_pack requires a namespace");

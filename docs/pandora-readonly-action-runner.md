@@ -69,3 +69,7 @@ The existing verification actions remain read-only. `prepare_shadow_context_pack
 ## Preflight action
 
 `prepare_shadow_pack_preflight` dry-runs deterministic diff/risk calculation. Approved execution writes/refreshes only preflight review tables and events, with `no_core_memory_mutation_performed` and `no_promotion_performed` true.
+
+## Promotion Request Board v1 boundary
+
+Approved shadow-pack preflights can now be used to create or refresh promotion requests for human review. These requests store deterministic promotion and rollback plans, but approval does not execute promotion and does not mutate production `memory_context_packs` or core memory truth tables.

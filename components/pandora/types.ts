@@ -154,8 +154,15 @@ export type ShadowPackPreflightStatus = "draft" | "ready_for_review" | "reviewed
 export type ShadowPackPreflightSummary = { id: string; user_id?: string; shadow_pack_id: string; namespace: PandoraNamespace; active_master_pack_id: string | null; request_id: string; status: ShadowPackPreflightStatus; diff_summary: ShadowPackDiffSummary; risk_summary: ShadowPackRiskSummary; reviewer_notes: string; reviewer_decision: "needs_changes" | "approved_for_promotion" | "blocked" | null; warnings: string[]; created_at: string; updated_at: string; reviewed_at?: string | null; approved_for_promotion_at?: string | null; blocked_at?: string | null };
 export type ShadowPackPreflightData = { preflights: ShadowPackPreflightSummary[]; warnings: string[]; countsByStatus: Record<ShadowPackPreflightStatus, number>; riskDistribution: Record<ShadowPackRiskSummary["status"], number> };
 
+export type PromotionRequestStatus = "draft" | "submitted" | "approved" | "blocked" | "archived";
+export type PromotionReviewerDecision = "approved" | "blocked" | "needs_changes" | null;
+export type PromotionPlanSummary = { plan_version: string; namespace: PandoraNamespace; shadow_pack_id: string; preflight_id: string; active_master_pack_id: string | null; intended_operation: string; steps: string[]; required_checks: string[]; execution_available: false; blockers?: string[] };
+export type RollbackPlanSummary = { plan_version: string; rollback_available_after_future_promotion: boolean; steps: string[]; rollback_execution_available: false };
+export type PromotionRequestSummary = { id:string; request_id:string; namespace:PandoraNamespace; shadow_pack_id:string; preflight_id:string; active_master_pack_id:string|null; status:PromotionRequestStatus; title:string; summary:string; promotion_plan:PromotionPlanSummary; rollback_plan:RollbackPlanSummary; risk_snapshot:ShadowPackRiskSummary; diff_snapshot:ShadowPackDiffSummary; reviewer_notes:string; reviewer_decision:PromotionReviewerDecision; warnings:string[]; created_at:string; updated_at:string; submitted_at?:string|null; approved_at?:string|null; blocked_at?:string|null; archived_at?:string|null };
+export type PromotionRequestBoardData = { requests: PromotionRequestSummary[]; warnings: string[]; countsByStatus: Record<PromotionRequestStatus, number>; riskDistribution: Record<ShadowPackRiskSummary["status"], number> };
+
 export type OperatorActionStatus = "proposed" | "dry_ran" | "approved" | "executing" | "completed" | "blocked" | "failed" | "cancelled";
-export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack" | "prepare_shadow_pack_preflight";
+export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack" | "prepare_shadow_pack_preflight" | "prepare_promotion_request";
 export type OperatorActionMode = "dry_run" | "queued_only";
 
 export type OperatorActionEventSummary = { id: string; action_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string; };
@@ -216,4 +223,5 @@ export type PandoraDashboardData = {
   operatorActions: OperatorActionCenterData;
   shadowContextPackLab: ShadowContextPackLabData;
   shadowPackPreflights: ShadowPackPreflightData;
+  promotionRequests: PromotionRequestBoardData;
 };

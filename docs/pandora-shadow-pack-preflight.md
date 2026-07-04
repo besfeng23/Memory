@@ -30,3 +30,7 @@ Blocked: no active master, or namespace mismatch. High: source event delta over 
 ## Future gated path
 
 Actual promotion remains a separate, human-approved system after low-risk reviewed preflight evidence is available.
+
+## Promotion Request Board v1 boundary
+
+Approved shadow-pack preflights can now be used to create or refresh promotion requests for human review. These requests store deterministic promotion and rollback plans, but approval does not execute promotion and does not mutate production `memory_context_packs` or core memory truth tables.
