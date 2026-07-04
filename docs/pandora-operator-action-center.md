@@ -49,3 +49,7 @@ The service hashes the server-derived `userId`, action type, namespace, normaliz
 ## Shadow context-pack action
 
 `prepare_shadow_context_pack` is available as a dry-run/queued-only operator action. Dry-run computes deterministic shadow candidate evidence without inserting a row. Approved execution writes only to the new shadow context-pack tables plus operator action events. It does not mutate core memory tables and does not promote to `memory_context_packs`.
+
+## Shadow pack preflight action
+
+Operators may propose `prepare_shadow_pack_preflight` when they provide a known `payload.shadow_pack_id`. Dry-run computes the diff only; approved execution writes preflight metadata only and does not promote context packs.

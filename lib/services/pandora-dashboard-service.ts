@@ -3,6 +3,7 @@ import type { PandoraDashboardData } from "@/components/pandora/types";
 import { loadPandoraVerificationData } from "@/lib/services/pandora-verification-service";
 import { listOperatorActions } from "@/lib/services/pandora-operator-action-service";
 import { listShadowContextPacks } from "@/lib/services/pandora-shadow-context-pack-service";
+import { listShadowPackPreflights } from "@/lib/services/pandora-shadow-pack-preflight-service";
 
 export type PandoraDashboardDbClient = { from: (table: string) => any };
 type Namespace = "real_life" | "au";
@@ -45,6 +46,9 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
   const shadowWarnings: string[] = [];
   let shadowPacks = [] as Row[];
   try { shadowPacks = await listShadowContextPacks(client, { userId: input.userId, limit: 8 }) as Row[]; } catch { shadowWarnings.push("shadow context-pack tables unavailable; lab is showing an empty state."); }
+  const preflightWarnings: string[] = [];
+  let preflights = [] as Row[];
+  try { preflights = await listShadowPackPreflights(client, { userId: input.userId, limit: 8 }) as Row[]; } catch { preflightWarnings.push("shadow pack preflight tables unavailable; preflight UI is showing an empty state."); }
   const actionEvents = await Promise.all(operatorActions.map(async (action) => {
     try {
       const result = await client.from("pandora_operator_action_events").select("*").eq("user_id", input.userId).eq("action_id", action.id).order("created_at", { ascending: false }).limit(3);
@@ -56,6 +60,10 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     }
   }));
   const eventsByAction = new Map(actionEvents.map((item) => [item.actionId, item.events]));
+  const preflightStatuses = ["draft", "ready_for_review", "reviewed", "approved_for_promotion", "blocked", "archived"] as const;
+  const preflightCountsByStatus = Object.fromEntries(preflightStatuses.map((status) => [status, preflights.filter((p) => p.status === status).length])) as PandoraDashboardData["shadowPackPreflights"]["countsByStatus"];
+  const riskStatuses = ["low", "medium", "high", "blocked"] as const;
+  const riskDistribution = Object.fromEntries(riskStatuses.map((status) => [status, preflights.filter((p) => p.risk_summary?.status === status).length])) as PandoraDashboardData["shadowPackPreflights"]["riskDistribution"];
   const shadowStatuses = ["draft", "ready_for_review", "reviewed", "rejected", "archived"] as const;
   const shadowCountsByStatus = Object.fromEntries(shadowStatuses.map((status) => [status, shadowPacks.filter((pack) => pack.status === status).length])) as PandoraDashboardData["shadowContextPackLab"]["countsByStatus"];
   const actionStatuses = ["proposed", "dry_ran", "approved", "executing", "completed", "blocked", "failed", "cancelled"] as const;
@@ -85,7 +93,7 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     generatedAt: new Date().toISOString(),
     operatorLabel: input.operatorLabel ?? input.userId,
     live: warnings.length === 0,
-    warnings: Array.from(new Set([...warnings, ...verification.warnings, ...shadowWarnings])),
+    warnings: Array.from(new Set([...warnings, ...verification.warnings, ...shadowWarnings, ...preflightWarnings])),
     hero: { title: "Pandora dashboard is reading live memory state.", description: "This route renders authenticated Supabase data for memory state while semantic retrieval, embeddings, model calls, GPT Actions, and MCP remain gated.", primaryAction: "Context pack data live", secondaryAction: "Retrieval eval Gated" },
     evidence: warnings.length ? "Live dashboard read completed with safe empty states for unavailable tables." : "Live dashboard read complete from server-derived session scope.",
     stats: [
@@ -108,6 +116,7 @@ export async function loadPandoraDashboardData(client: PandoraDashboardDbClient,
     diagnostics: { coreSystems: [{ label: "Route exposure", value: "Auth gated", state: "healthy" }, { label: "Displayed data", value: warnings.length ? "Partial live reads" : "Live reads", state: warnings.length ? "attention" : "healthy" }, { label: "Master-pack invariant", value: duplicates ? `${duplicates} duplicate` : "OK", state: duplicates ? "attention" : "healthy" }, { label: "Client user_id", value: "Rejected", state: "healthy" }], gatedSystems: [{ label: "Semantic retrieval", value: "Gated Off", state: "gated" }, { label: "Embeddings", value: "Gated Off", state: "gated" }, { label: "Model calls", value: "Gated Off", state: "gated" }, { label: "Pruning automation", value: "Review-only", state: "gated" }], envelope: { title: "Dashboard Truth Envelope", description: warnings.length ? "Unavailable reads were converted to warnings and empty UI state." : "Live loader completed from authenticated Supabase reads." } },
     verification,
     shadowContextPackLab: { packs: shadowPacks.map((pack) => ({ id: String(pack.id), request_id: String(pack.request_id), operator_action_id: pack.operator_action_id ? String(pack.operator_action_id) : null, namespace: pack.namespace === "au" ? "au" : "real_life", pack_type: String(pack.pack_type ?? "master_candidate"), status: String(pack.status ?? "draft") as never, title: String(pack.title ?? "Shadow context pack"), summary: String(pack.summary ?? ""), source_window: pack.source_window ?? {}, candidate_payload: pack.candidate_payload ?? {}, evidence: pack.evidence ?? {}, warnings: Array.isArray(pack.warnings) ? pack.warnings : [], created_at: String(pack.created_at ?? ""), updated_at: String(pack.updated_at ?? ""), reviewed_at: pack.reviewed_at ?? null, rejected_at: pack.rejected_at ?? null, archived_at: pack.archived_at ?? null })), warnings: shadowWarnings, countsByStatus: shadowCountsByStatus },
+    shadowPackPreflights: { preflights: preflights.map((p) => ({ id: String(p.id), user_id: String(p.user_id ?? ""), shadow_pack_id: String(p.shadow_pack_id), namespace: p.namespace === "au" ? "au" : "real_life", active_master_pack_id: p.active_master_pack_id ? String(p.active_master_pack_id) : null, request_id: String(p.request_id ?? ""), status: String(p.status ?? "draft") as never, diff_summary: p.diff_summary ?? { active_master_pack_id: null, shadow_pack_id: String(p.shadow_pack_id ?? ""), namespace: p.namespace === "au" ? "au" : "real_life", added_keys: [], removed_keys: [], changed_keys: [], unchanged_keys: [], source_event_count_delta: 0, open_loop_count_delta: 0, needs_review_count_delta: 0, top_recent_summary_count: 0, evidence_summary_changed: false, has_active_master: false, generated_at: String(p.created_at ?? "") }, risk_summary: p.risk_summary ?? { status: "blocked", score: 100, reasons: [], blockers: ["preflight risk summary unavailable"], warnings: [] }, reviewer_notes: String(p.reviewer_notes ?? ""), reviewer_decision: p.reviewer_decision ?? null, warnings: Array.isArray(p.warnings) ? p.warnings : [], created_at: String(p.created_at ?? ""), updated_at: String(p.updated_at ?? ""), reviewed_at: p.reviewed_at ?? null, approved_for_promotion_at: p.approved_for_promotion_at ?? null, blocked_at: p.blocked_at ?? null })), warnings: preflightWarnings, countsByStatus: preflightCountsByStatus, riskDistribution },
     operatorActions: { actions: operatorActions.map((action) => {
       const eventPreview = eventsByAction.get(action.id) ?? [];
       return { id: action.id, request_id: action.request_id, idempotency_key: action.idempotency_key, action_type: action.action_type, namespace: action.namespace, mode: action.mode, status: action.status, title: action.title, description: action.description, result: action.result, warnings: action.warnings, created_at: action.created_at, updated_at: action.updated_at, approved_at: action.approved_at, completed_at: action.completed_at, failed_at: action.failed_at, event_count: eventPreview.length, event_preview: eventPreview.map((event: Row) => ({ id: String(event.id), action_id: String(event.action_id), user_id: String(event.user_id), event_type: String(event.event_type), message: String(event.message), metadata: event.metadata ?? {}, created_at: String(event.created_at) })) };

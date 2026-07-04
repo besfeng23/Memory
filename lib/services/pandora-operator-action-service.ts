@@ -4,15 +4,16 @@ import type { PandoraNamespace } from "@/components/pandora/types";
 import { loadPandoraDashboardData } from "@/lib/services/pandora-dashboard-service";
 import { loadPandoraVerificationData } from "@/lib/services/pandora-verification-service";
 import { createShadowContextPackCandidate, dryRunShadowContextPackCandidate } from "@/lib/services/pandora-shadow-context-pack-service";
+import { computeShadowPackPreflight, createOrRefreshShadowPackPreflight } from "@/lib/services/pandora-shadow-pack-preflight-service";
 
-export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack";
+export type OperatorActionType = "verify_namespace_invariants" | "verify_pack_supersession" | "check_retrieval_eval_status" | "refresh_dashboard_snapshot" | "prepare_distill_smoke_plan" | "prepare_shadow_context_pack" | "prepare_shadow_pack_preflight";
 export type OperatorActionMode = "dry_run" | "queued_only";
 export type OperatorActionStatus = "proposed" | "dry_ran" | "approved" | "executing" | "completed" | "blocked" | "failed" | "cancelled";
 export type OperatorActionRow = { id: string; user_id: string; request_id: string; idempotency_key: string; action_type: OperatorActionType; namespace: PandoraNamespace | null; mode: OperatorActionMode; status: OperatorActionStatus; title: string; description: string; payload: Record<string, unknown>; result: Record<string, unknown>; warnings: string[]; created_at: string; updated_at: string; approved_at?: string | null; completed_at?: string | null; failed_at?: string | null };
 export type OperatorActionEventRow = { id: string; action_id: string; user_id: string; event_type: string; message: string; metadata: Record<string, unknown>; created_at: string };
 export type OperatorActionDbClient = { from: (table: string) => any };
 
-const ACTIONS = new Set<OperatorActionType>(["verify_namespace_invariants", "verify_pack_supersession", "check_retrieval_eval_status", "refresh_dashboard_snapshot", "prepare_distill_smoke_plan", "prepare_shadow_context_pack"]);
+const ACTIONS = new Set<OperatorActionType>(["verify_namespace_invariants", "verify_pack_supersession", "check_retrieval_eval_status", "refresh_dashboard_snapshot", "prepare_distill_smoke_plan", "prepare_shadow_context_pack", "prepare_shadow_pack_preflight"]);
 const MODES = new Set<OperatorActionMode>(["dry_run", "queued_only"]);
 const NAMESPACES = new Set(["real_life", "au"]);
 
@@ -66,6 +67,12 @@ export async function proposeOperatorAction(client: OperatorActionDbClient, inpu
 
 async function buildDryRunResult(client: OperatorActionDbClient, userId: string, action: OperatorActionRow) {
   const warnings: string[] = [];
+  if (action.action_type === "prepare_shadow_pack_preflight") {
+    const shadowPackId = typeof action.payload?.shadow_pack_id === "string" ? action.payload.shadow_pack_id : "";
+    if (!shadowPackId) throw new Error("prepare_shadow_pack_preflight requires payload.shadow_pack_id");
+    const built = await computeShadowPackPreflight(client, { userId, shadowPackId, requestId: action.request_id });
+    return { warnings: built.warnings, result: { checked: "shadow_pack_preflight", shadow_pack_id: shadowPackId, risk_status: built.risk_summary.status, diff_summary: built.diff_summary, risk_summary: built.risk_summary, no_core_memory_mutation_performed: true, no_promotion_performed: true, preflight_write_performed: false } };
+  }
   if (action.action_type === "prepare_shadow_context_pack") {
     if (!action.namespace) throw new Error("prepare_shadow_context_pack requires a namespace");
     const candidate = await dryRunShadowContextPackCandidate(client, { userId, namespace: action.namespace, sourceWindow: action.payload?.source_window as Record<string, unknown> | undefined });
@@ -112,6 +119,13 @@ export async function executeApprovedOperatorAction(client: OperatorActionDbClie
   await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "executing", message: action.action_type === "prepare_shadow_context_pack" ? "Approved shadow staging execution started." : "Approved read-only verification execution started.", metadata: { no_mutation_performed: action.action_type !== "prepare_shadow_context_pack", no_core_memory_mutation_performed: true } });
   try {
     let built: { warnings: string[]; result: Record<string, unknown> } = await buildDryRunResult(client, input.userId, executing);
+    if (executing.action_type === "prepare_shadow_pack_preflight") {
+      const shadowPackId = typeof executing.payload?.shadow_pack_id === "string" ? executing.payload.shadow_pack_id : "";
+      if (!shadowPackId) throw new Error("prepare_shadow_pack_preflight requires payload.shadow_pack_id");
+      const preflight = await createOrRefreshShadowPackPreflight(client, { userId: input.userId, shadowPackId, requestId: executing.request_id });
+      built = { warnings: preflight.warnings, result: { checked: "shadow_pack_preflight", preflight_id: preflight.id, shadow_pack_id: shadowPackId, risk_status: preflight.risk_summary.status, no_core_memory_mutation_performed: true, no_promotion_performed: true, preflight_write_performed: true } };
+      await createActionEvent(client, { userId: input.userId, actionId: input.actionId, eventType: "shadow_pack_preflight_created", message: "Shadow pack preflight created/refreshed only; no production context pack mutation performed.", metadata: built.result });
+    }
     if (executing.action_type === "prepare_shadow_context_pack") {
       if (!executing.namespace) throw new Error("prepare_shadow_context_pack requires a namespace");
       const shadow = await createShadowContextPackCandidate(client, { userId: input.userId, namespace: executing.namespace, operatorActionId: executing.id, requestId: executing.request_id, sourceWindow: executing.payload?.source_window as Record<string, unknown> | undefined });

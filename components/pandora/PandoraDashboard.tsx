@@ -13,6 +13,7 @@ import { TopBar } from "./TopBar";
 import { VerificationConsoleCard } from "./VerificationConsoleCard";
 import { OperatorActionCenterCard } from "./OperatorActionCenterCard";
 import { ShadowContextPackLabCard } from "./ShadowContextPackLabCard";
+import { ShadowPackPreflightCard } from "./ShadowPackPreflightCard";
 import { WorkQueueCard } from "./WorkQueueCard";
 import type { PandoraDashboardData, StatItem } from "./types";
 import { useState } from "react";
@@ -47,6 +48,7 @@ export function PandoraDashboard({ dashboardData }: { dashboardData: PandoraDash
           <VerificationConsoleCard verification={dashboardData.verification} />
           <OperatorActionCenterCard data={dashboardData.operatorActions} />
           <ShadowContextPackLabCard data={dashboardData.shadowContextPackLab} />
+          <ShadowPackPreflightCard data={dashboardData.shadowPackPreflights} />
           <div className="pd-dashboard-grid">
             <div className="pd-dashboard-col pd-dashboard-col-wide">
               <MemorySpacesCard spaces={dashboardData.memorySpaces} />
