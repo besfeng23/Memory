@@ -53,3 +53,7 @@ The service hashes the server-derived `userId`, action type, namespace, normaliz
 ## Shadow pack preflight action
 
 Operators may propose `prepare_shadow_pack_preflight` when they provide a known `payload.shadow_pack_id`. Dry-run computes the diff only; approved execution writes preflight metadata only and does not promote context packs.
+
+## Promotion Request Board v1 boundary
+
+Approved shadow-pack preflights can now be used to create or refresh promotion requests for human review. These requests store deterministic promotion and rollback plans, but approval does not execute promotion and does not mutate production `memory_context_packs` or core memory truth tables.

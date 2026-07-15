@@ -39,3 +39,7 @@ A future human-approved promotion path would require a separate PR, explicit rev
 ## Shadow pack preflight handoff
 
 Shadow candidates can now be compared through Shadow Pack Preflight. The lab may create or refresh a preflight, but it still does not promote, replace, merge, distill, prune, or delete production memory rows.
+
+## Promotion Request Board v1 boundary
+
+Approved shadow-pack preflights can now be used to create or refresh promotion requests for human review. These requests store deterministic promotion and rollback plans, but approval does not execute promotion and does not mutate production `memory_context_packs` or core memory truth tables.

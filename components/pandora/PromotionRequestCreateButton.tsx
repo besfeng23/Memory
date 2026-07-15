@@ -1,0 +1,2 @@
+"use client";
+export function PromotionRequestCreateButton({ preflightId, disabled }: { preflightId: string; disabled?: boolean }) { async function create(){ await fetch(`/api/pandora/shadow-pack-preflights/${preflightId}/promotion-request`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({})}); window.location.reload(); } return <button className="button-link" type="button" disabled={disabled} onClick={create}>Create/refresh promotion request</button>; }

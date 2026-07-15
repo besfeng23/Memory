@@ -1,0 +1,6 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { assertNoClientUserIdOverride, resolvePandoraServerSession } from "@/lib/auth/pandora-server-session-resolver";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPromotionRequest, type PromotionRequestDbClient } from "@/lib/services/pandora-promotion-request-service";
+export const dynamic = "force-dynamic";
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) { const rejected = await assertNoClientUserIdOverride(request); if (rejected) return NextResponse.json({ ok:false, blockers: rejected.blockers }, { status: 400 }); const session = await resolvePandoraServerSession({ request }); if (!session.ok) return NextResponse.json({ ok:false, blockers: session.blockers }, { status: 401 }); try { const { id } = await context.params; const supabase = await createSupabaseServerClient(); const promotionRequest = await getPromotionRequest(supabase as unknown as PromotionRequestDbClient, { userId: session.session.userId, promotionRequestId: id }); return NextResponse.json({ ok:true, promotionRequest }); } catch(e) { return NextResponse.json({ ok:false, error: e instanceof Error ? e.message : "Not found" }, { status: 404 }); } }
