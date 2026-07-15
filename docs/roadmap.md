@@ -34,9 +34,10 @@ PRs #96, #99, #118, #119 were closed with evidence comments.
 
 1. **Promotion executor** — the gated, human-approved path that promotes an approved shadow
    candidate to the active master. Chain: lab → preflight → request board (all live) →
-   execution (NOT built). Requires its own PR, migration/policy review, dry-run proof, and
-   explicit production approval. Until then every surface must keep saying
-   "execution unavailable".
+   execution. Executor v1 code exists in its own PR (see `docs/pandora-promotion-executor.md`);
+   it requires human review + merge, migration apply, dry-run proof, and the
+   `PANDORA_ENABLE_CONTEXT_PACK_PROMOTION` gate (default false) before anything can execute.
+   Until the gate is enabled every surface saying "execution unavailable" stays accurate.
 2. **Phase 5D closure** per the execution rule in `CLAUDE.md`: protected dry-runs for
    `real_life` and `au`, human review of dry-run output, explicit approval before any
    `dryRun:false` run, post-run database verification. Pruning stays review-only regardless
