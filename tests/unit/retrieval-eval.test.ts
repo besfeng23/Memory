@@ -191,4 +191,37 @@ describe("supersede-on-distill", () => {
     expect(store.memory_context_packs.find((p) => p.id === "au-keep")!.status).toBe("active");
     expect(store.memory_context_packs.find((p) => p.id === "rl-old")!.status).toBe("archived");
   });
+
+  // Regression for the 2026-07-03 production checkpoint invariant: after repeated distills,
+  // at most one active pack may exist per (user_id, namespace, pack_type), older packs must be
+  // archived (never deleted), and other users' active packs must be untouched.
+  it("repeated distills keep exactly one active pack per (user_id, namespace, pack_type)", async () => {
+    const OTHER_USER = "u-83a07d75";
+    const store: Record<string, Row[]> = {
+      memory_context_packs: [
+        { id: "other-rl", user_id: OTHER_USER, namespace: "real_life", pack_type: "master", status: "active" },
+      ],
+      audit_logs: [],
+    };
+    const client = makeClient(store);
+    for (const namespace of ["au", "real_life"]) {
+      await createContextPack(client, newPack(namespace) as any, bridgePrincipal, runtime);
+      await createContextPack(client, newPack(namespace) as any, bridgePrincipal, runtime);
+    }
+
+    const activeCounts = new Map<string, number>();
+    for (const p of store.memory_context_packs) {
+      if (p.status !== "active") continue;
+      const key = `${p.user_id}/${p.namespace}/${p.pack_type}`;
+      activeCounts.set(key, (activeCounts.get(key) ?? 0) + 1);
+    }
+    for (const [key, count] of activeCounts) expect(count, `active packs for ${key}`).toBe(1);
+
+    // superseded packs are archived in place, never deleted
+    expect(store.memory_context_packs.filter((p) => p.user_id === USER && p.namespace === "au")).toHaveLength(2);
+    expect(store.memory_context_packs.filter((p) => p.user_id === USER && p.namespace === "real_life")).toHaveLength(2);
+
+    // the other user's active master is untouched by this user's distills
+    expect(store.memory_context_packs.find((p) => p.id === "other-rl")!.status).toBe("active");
+  });
 });
